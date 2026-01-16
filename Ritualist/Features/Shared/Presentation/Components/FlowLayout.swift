@@ -65,8 +65,10 @@ struct FlowLayout: Layout {
         // Add height of last row
         totalHeight += rowHeight
 
-        // Ensure minimum height of 1 to avoid zero-height layout issues
-        return CGSize(width: containerWidth, height: max(totalHeight, 1))
+        // Return calculated height, or 0 for empty layouts.
+        // Note: Returning 0 is safe - SwiftUI handles zero-height views gracefully.
+        // Previous implementation used max(_, 1) but that caused 1pt artifacts.
+        return CGSize(width: containerWidth, height: totalHeight)
     }
 
     // Note: `proposal` parameter is required by the Layout protocol but unused here.

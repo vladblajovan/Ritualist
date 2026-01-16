@@ -34,6 +34,11 @@ struct WeekDateSelector: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var currentWeekIndex: Int
     @State private var weeks: [[Date]] = []
+    @State private var lastRegenerationTime: Date = .distantPast
+
+    /// Minimum interval between week array regenerations (100ms)
+    /// Prevents excessive regenerations during rapid programmatic date changes
+    private static let regenerationDebounceInterval: TimeInterval = 0.1
 
     init(
         selectedDate: Date,
@@ -113,17 +118,22 @@ struct WeekDateSelector: View {
         .onChange(of: selectedDate) { _, newDate in
             // Regenerate weeks when approaching edges to enable infinite scrolling.
             // Performance note: Regeneration creates 9 weeks (63 Date objects, ~5KB).
-            // After regeneration, the view re-centers at index 4, requiring 3+ weeks
-            // of swiping before the next regeneration. This provides smooth infinite
-            // scrolling with minimal memory and CPU overhead. Date creation is fast
-            // enough that no debouncing is needed for typical swipe speeds.
+            // Debouncing prevents excessive regenerations during rapid programmatic date changes.
             let newIndex = weekIndexForDate(newDate)
             if newIndex != currentWeekIndex {
                 // Check if we need to regenerate (within 2 weeks of either edge)
                 if newIndex <= 1 || newIndex >= weeks.count - 2 {
-                    weeks = generateWeeks()
-                    // Recalculate index after regeneration to avoid mismatch
-                    currentWeekIndex = weekIndexForDate(newDate)
+                    // Debounce regeneration to prevent excessive allocations
+                    let now = Date()
+                    if now.timeIntervalSince(lastRegenerationTime) >= Self.regenerationDebounceInterval {
+                        weeks = generateWeeks()
+                        lastRegenerationTime = now
+                        // Recalculate index after regeneration to avoid mismatch
+                        currentWeekIndex = weekIndexForDate(newDate)
+                    } else {
+                        // Skip regeneration but still update index if valid
+                        currentWeekIndex = newIndex
+                    }
                 } else {
                     currentWeekIndex = newIndex
                 }

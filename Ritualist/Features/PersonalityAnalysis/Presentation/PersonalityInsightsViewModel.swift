@@ -137,20 +137,25 @@ public final class PersonalityInsightsViewModel {
                 await preferencesManager.triggerAnalysis(for: userId)
                 logger.log("Analysis trigger completed, checking for generated profile", level: .debug, category: .personality)
 
-                // Retry fetching profile with small delays to handle potential async save timing
-                // Analysis saves synchronously, but SwiftData might need time to flush to disk
-                let maxRetries = 3
-                let retryDelayMs: UInt64 = 500_000_000 // 0.5 seconds
+                // Retry fetching profile with exponential backoff to handle SwiftData persistence timing
+                // Delays: 500ms, 750ms, 1s, 1.5s = total ~3.75s max wait
+                // This handles slow persistence under heavy load while keeping typical case fast
+                let maxRetries = 5
+                let baseDelayNs: UInt64 = 500_000_000 // 0.5 seconds base
 
                 var generatedProfile: PersonalityProfile?
                 for attempt in 1...maxRetries {
                     generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId)
                     if generatedProfile != nil {
+                        logger.log("Profile found on attempt \(attempt)", level: .debug, category: .personality)
                         break
                     }
                     if attempt < maxRetries {
-                        logger.log("Profile not found on attempt \(attempt), retrying...", level: .debug, category: .personality)
-                        try await Task.sleep(nanoseconds: retryDelayMs)
+                        // Exponential backoff: 500ms, 750ms, 1000ms, 1500ms
+                        let delayMultiplier = UInt64(pow(1.5, Double(attempt - 1)))
+                        let delay = baseDelayNs * delayMultiplier
+                        logger.log("Profile not found on attempt \(attempt), retrying in \(delay / 1_000_000)ms...", level: .debug, category: .personality)
+                        try await Task.sleep(nanoseconds: delay)
                     }
                 }
 
