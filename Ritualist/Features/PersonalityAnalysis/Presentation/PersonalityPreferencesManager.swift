@@ -20,12 +20,6 @@ final class PersonalityPreferencesManager {
     private let userDefaults: UserDefaultsService
     private let logger: DebugLogger
 
-    /// Minimum interval between automatic trigger checks (2 minutes)
-    /// Prevents redundant database queries on rapid app restarts while still being responsive.
-    /// Rationale: 2 minutes balances between preventing excessive checks (battery/performance)
-    /// and ensuring users who restart the app expecting new analysis don't wait too long.
-    private static let triggerCheckDebounceInterval: TimeInterval = 2 * 60
-
     init(
         getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
         saveAnalysisPreferencesUseCase: SaveAnalysisPreferencesUseCase,
@@ -84,7 +78,7 @@ final class PersonalityPreferencesManager {
         guard let lastCheck = userDefaults.object(forKey: UserDefaultsKeys.personalityLastTriggerCheckDate) as? Date else {
             return true // Never checked before
         }
-        return Date().timeIntervalSince(lastCheck) >= Self.triggerCheckDebounceInterval
+        return Date().timeIntervalSince(lastCheck) >= AppConstants.personalityAnalysisTriggerDebounceInterval
     }
 
     /// Records the current time as the last trigger check

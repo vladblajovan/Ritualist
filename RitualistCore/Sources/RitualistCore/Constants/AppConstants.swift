@@ -278,6 +278,10 @@ public struct BusinessConstants {
     /// Minimum habit diversity (different categories) for analysis
     public static let minHabitDiversityForAnalysis = 2
 
+    /// Minimum interval between automatic personality analysis trigger checks (2 * 60)
+    /// Prevents redundant database queries on rapid app restarts while still being responsive.
+    public static let personalityAnalysisTriggerDebounceInterval: TimeInterval = 120
+
     // MARK: - Validation Rules
 
     /// Minimum daily target value for numeric habits

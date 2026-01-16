@@ -60,7 +60,8 @@ struct FlowLayout: Layout {
         // Add height of last row
         totalHeight += rowHeight
 
-        return CGSize(width: containerWidth, height: totalHeight)
+        // Ensure minimum height of 1 to avoid zero-height layout issues
+        return CGSize(width: containerWidth, height: max(totalHeight, 1))
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) {

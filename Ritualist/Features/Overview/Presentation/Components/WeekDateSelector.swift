@@ -114,7 +114,8 @@ struct WeekDateSelector: View {
                 // Check if we need to regenerate (approaching edges)
                 if newIndex <= 1 || newIndex >= weeks.count - 2 {
                     weeks = generateWeeks()
-                    currentWeekIndex = Self.weeksBuffer
+                    // Recalculate index after regeneration to avoid mismatch
+                    currentWeekIndex = weekIndexForDate(newDate)
                 } else {
                     currentWeekIndex = newIndex
                 }

@@ -133,7 +133,9 @@ public final class PersonalityInsightsViewModel {
             if eligibility.isEligible {
                 // User has sufficient data - trigger analysis through scheduler
                 // This ensures notification is sent and profile is saved properly
+                logger.log("Triggering analysis for eligible user", level: .debug, category: .personality)
                 await preferencesManager.triggerAnalysis(for: userId)
+                logger.log("Analysis trigger completed, checking for generated profile", level: .debug, category: .personality)
 
                 // Reload the generated profile
                 if let generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId) {
