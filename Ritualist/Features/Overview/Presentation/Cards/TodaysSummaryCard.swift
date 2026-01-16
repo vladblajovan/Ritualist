@@ -190,7 +190,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         // Remove progress for habits that are no longer in the list
         habitAnimatedProgress = habitAnimatedProgress.filter { currentHabitIds.contains($0.key) }
 
-        // Update all incomplete numeric habits only
+        // Update only numeric habits whose progress actually changed
         for habit in summary.incompleteHabits where habit.kind == .numeric {
             let currentValue = getProgress(habit)
             let target = habit.dailyTarget ?? 1.0
@@ -203,12 +203,13 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 withAnimation(.easeInOut(duration: 0.5)) {
                     habitAnimatedProgress[habit.id] = actualProgress
                 }
-            } else {
-                // Already tracked, animate from previous value
+            } else if habitAnimatedProgress[habit.id] != actualProgress {
+                // Only animate if progress actually changed - prevents redundant animations
                 withAnimation(.easeInOut(duration: 0.5)) {
                     habitAnimatedProgress[habit.id] = actualProgress
                 }
             }
+            // Skip animation if progress unchanged (optimization for 10+ habits)
         }
     }
 
@@ -468,9 +469,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             VStack(alignment: .leading, spacing: 16) {
                 // Remaining section - only show if there are remaining habits
                 // Supports compact view (emoji circles only) and expanded view (full habit rows)
-                if scheduledIncompleteCount > 0 {
+                // Use array count directly to ensure sync with visibleIncompleteHabits
+                if !visibleIncompleteHabits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        remainingSectionHeader(count: scheduledIncompleteCount)
+                        remainingSectionHeader(count: visibleIncompleteHabits.count)
 
                         if isRemainingViewCompact {
                             compactRemainingCircles(habits: visibleIncompleteHabits)
@@ -509,9 +511,10 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             VStack(alignment: .leading, spacing: 16) {
                 // Remaining section - only show if there are remaining habits
                 // Supports compact view (emoji circles only) and expanded view (full habit rows)
-                if scheduledIncompleteCount > 0 {
+                // Use array count directly to ensure sync with visibleIncompleteHabits
+                if !visibleIncompleteHabits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        remainingSectionHeader(count: scheduledIncompleteCount)
+                        remainingSectionHeader(count: visibleIncompleteHabits.count)
 
                         if isRemainingViewCompact {
                             compactRemainingCircles(habits: visibleIncompleteHabits)
@@ -542,7 +545,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     @ViewBuilder
     private func incompleteHabitsContent(summary: TodaysSummary) -> some View {
-        if scheduledIncompleteCount > 0 {
+        if !visibleIncompleteHabits.isEmpty {
             VStack(spacing: 8) {
                 ForEach(Array(visibleIncompleteHabits.enumerated()), id: \.element.id) { index, habit in
                     incompleteHabitItem(habit: habit, isFirstItem: index == 0)

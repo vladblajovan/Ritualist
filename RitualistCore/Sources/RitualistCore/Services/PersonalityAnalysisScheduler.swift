@@ -28,6 +28,8 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     private var lastDataHashes: [UUID: String] = [:]
     /// Tracks users with in-flight analysis to prevent duplicate concurrent triggers
     private var analysisInProgress: Set<UUID> = []
+    /// Task reference for initial state loading to enable proper lifecycle management
+    private var loadStateTask: Task<Void, Never>?
     
     // MARK: - Constants
     
@@ -53,7 +55,12 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         self.errorHandler = errorHandler
         self.logger = logger
 
-        Task { await self.loadSchedulerState() }
+        // Store task reference to prevent potential memory leak from orphaned task
+        loadStateTask = Task { await self.loadSchedulerState() }
+    }
+
+    deinit {
+        loadStateTask?.cancel()
     }
     
     // MARK: - Public Methods
@@ -94,10 +101,14 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
             guard try await shouldRunAnalysis(for: userId) else {
                 return
             }
-            
+
             await performAnalysis(for: userId)
         } catch {
-            // Error during analysis check
+            logger.log(
+                "Failed to trigger analysis check for user \(userId): \(error.localizedDescription)",
+                level: .error,
+                category: .personality
+            )
         }
     }
     
@@ -305,20 +316,40 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     }
     
     // MARK: - Persistence
-    
+
+    /// Saves scheduler state to UserDefaults. Logs errors but does not throw,
+    /// as persistence failures should not block scheduling operations.
     private func saveSchedulerState() {
         let encoder = JSONEncoder()
+        var persistenceErrors: [String] = []
 
-        if let scheduledData = try? encoder.encode(Array(scheduledUsers)) {
+        do {
+            let scheduledData = try encoder.encode(Array(scheduledUsers))
             userDefaults.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
+        } catch {
+            persistenceErrors.append("scheduledUsers: \(error.localizedDescription)")
         }
 
-        if let datesData = try? encoder.encode(lastAnalysisDates) {
+        do {
+            let datesData = try encoder.encode(lastAnalysisDates)
             userDefaults.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
+        } catch {
+            persistenceErrors.append("lastAnalysisDates: \(error.localizedDescription)")
         }
 
-        if let hashData = try? encoder.encode(lastDataHashes) {
+        do {
+            let hashData = try encoder.encode(lastDataHashes)
             userDefaults.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
+        } catch {
+            persistenceErrors.append("lastDataHashes: \(error.localizedDescription)")
+        }
+
+        if !persistenceErrors.isEmpty {
+            logger.log(
+                "Failed to persist scheduler state: \(persistenceErrors.joined(separator: "; "))",
+                level: .error,
+                category: .personality
+            )
         }
     }
 

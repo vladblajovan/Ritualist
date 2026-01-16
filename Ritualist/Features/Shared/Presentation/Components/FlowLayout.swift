@@ -38,6 +38,7 @@ struct FlowLayout: Layout {
     // MARK: - Layout
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) -> CGSize {
+        // Use proposed width, fallback to reasonable default (rare in practice)
         let containerWidth = proposal.width ?? 300
         var currentRowWidth: CGFloat = 0
         var totalHeight: CGFloat = 0
@@ -46,13 +47,17 @@ struct FlowLayout: Layout {
         for (index, _) in subviews.enumerated() {
             let subviewSize = cache.subviewSizes[index]
 
-            // Check if we need to wrap to next row
+            // Check if adding this item would exceed container width.
+            // currentRowWidth includes spacing from previous items (inter-item spacing).
+            // We only add spacing AFTER placing an item, so the check is correct:
+            // "Does current accumulated width + new item fit within bounds?"
             if currentRowWidth + subviewSize.width > containerWidth && currentRowWidth > 0 {
                 totalHeight += rowHeight + spacing
                 currentRowWidth = 0
                 rowHeight = 0
             }
 
+            // Add item width plus trailing spacing (becomes inter-item spacing for next item)
             currentRowWidth += subviewSize.width + spacing
             rowHeight = max(rowHeight, subviewSize.height)
         }

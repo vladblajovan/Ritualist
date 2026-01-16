@@ -297,11 +297,16 @@ private struct PersonalityProfileView: View {
     // Avatar sizing (larger than header avatar)
     private let avatarSize: CGFloat = 72
 
+    // Task reference for banner dismissal to enable proper cancellation
+    @State private var bannerDismissTask: Task<Void, Never>?
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // New Analysis Banner (dismissible)
-                if insightsVM.hasUnseenAnalysis {
+                // Capture value to avoid re-evaluation during render
+                let showBanner = insightsVM.hasUnseenAnalysis
+                if showBanner {
                     newAnalysisBanner
                 }
 
@@ -532,7 +537,9 @@ private struct PersonalityProfileView: View {
             Spacer()
 
             Button {
-                Task { @MainActor in
+                // Store task reference for proper lifecycle management
+                bannerDismissTask?.cancel()
+                bannerDismissTask = Task { @MainActor in
                     await insightsVM.markAnalysisAsSeen()
                     // Clear personality notifications only after user acknowledges the new analysis
                     await notificationService.clearPersonalityNotifications()
@@ -546,6 +553,9 @@ private struct PersonalityProfileView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .onDisappear {
+            bannerDismissTask?.cancel()
+        }
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(.linearGradient(
