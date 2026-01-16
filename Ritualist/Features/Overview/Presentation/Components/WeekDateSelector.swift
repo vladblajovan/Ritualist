@@ -23,8 +23,13 @@ struct WeekDateSelector: View {
     let onDateSelected: (Date) -> Void
     let onGoToToday: () -> Void
 
-    /// Number of weeks to show on each side of the current week
-    private let weeksBuffer = 4
+    // MARK: - Layout Constants
+
+    /// Number of weeks to show on each side of the current week.
+    /// 4 weeks provides smooth scrolling in both directions while keeping memory usage low.
+    /// Total weeks in memory: (4 * 2) + 1 = 9 weeks = 63 Date objects (~5KB).
+    /// Weeks regenerate when user approaches edges, so this is effectively unlimited scrolling.
+    private static let weeksBuffer = 4
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var currentWeekIndex: Int
@@ -49,8 +54,8 @@ struct WeekDateSelector: View {
         self.onDateSelected = onDateSelected
         self.onGoToToday = onGoToToday
 
-        // Initialize at center of weeks array
-        self._currentWeekIndex = State(initialValue: 4) // weeksBuffer
+        // Initialize at center of weeks array (weeksBuffer index)
+        self._currentWeekIndex = State(initialValue: Self.weeksBuffer)
     }
 
     // MARK: - Week Calculations (using CalendarUtils)
@@ -66,7 +71,7 @@ struct WeekDateSelector: View {
         var weeksArray: [[Date]] = []
 
         // Generate weeks before and after current week
-        for offset in -weeksBuffer...weeksBuffer {
+        for offset in -Self.weeksBuffer...Self.weeksBuffer {
             let weekStart = CalendarUtils.addWeeksLocal(offset, to: currentWeekStart, timezone: timezone)
             weeksArray.append(datesForWeek(startingAt: weekStart))
         }
@@ -85,7 +90,7 @@ struct WeekDateSelector: View {
         for (index, week) in weeks.enumerated() where week.contains(where: { CalendarUtils.areSameDayLocal($0, date, timezone: timezone) }) {
             return index
         }
-        return weeksBuffer
+        return Self.weeksBuffer
     }
 
     // MARK: - Body
@@ -109,7 +114,7 @@ struct WeekDateSelector: View {
                 // Check if we need to regenerate (approaching edges)
                 if newIndex <= 1 || newIndex >= weeks.count - 2 {
                     weeks = generateWeeks()
-                    currentWeekIndex = weeksBuffer
+                    currentWeekIndex = Self.weeksBuffer
                 } else {
                     currentWeekIndex = newIndex
                 }

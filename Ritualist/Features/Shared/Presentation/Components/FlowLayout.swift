@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// Custom Layout implementation for flowing content that wraps to multiple rows
-/// Uses iOS 16+ Layout protocol for precise control over item positioning
+/// Custom Layout implementation for flowing content that wraps to multiple rows.
+/// Uses iOS 16+ Layout protocol for precise control over item positioning.
+/// Implements caching to avoid redundant size calculations on repeated layout passes.
 @available(iOS 16.0, *)
 struct FlowLayout: Layout {
     let spacing: CGFloat
@@ -17,14 +18,33 @@ struct FlowLayout: Layout {
         self.spacing = spacing
     }
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    // MARK: - Cache
+
+    /// Cache stores pre-computed subview sizes to avoid recalculating on every layout pass.
+    /// SwiftUI may call sizeThatFits and placeSubviews multiple times per frame.
+    struct CacheData {
+        var subviewSizes: [CGSize]
+    }
+
+    func makeCache(subviews: Subviews) -> CacheData {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        return CacheData(subviewSizes: sizes)
+    }
+
+    func updateCache(_ cache: inout CacheData, subviews: Subviews) {
+        cache.subviewSizes = subviews.map { $0.sizeThatFits(.unspecified) }
+    }
+
+    // MARK: - Layout
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) -> CGSize {
         let containerWidth = proposal.width ?? 300
         var currentRowWidth: CGFloat = 0
         var totalHeight: CGFloat = 0
         var rowHeight: CGFloat = 0
 
-        for subview in subviews {
-            let subviewSize = subview.sizeThatFits(.unspecified)
+        for (index, _) in subviews.enumerated() {
+            let subviewSize = cache.subviewSizes[index]
 
             // Check if we need to wrap to next row
             if currentRowWidth + subviewSize.width > containerWidth && currentRowWidth > 0 {
@@ -43,13 +63,13 @@ struct FlowLayout: Layout {
         return CGSize(width: containerWidth, height: totalHeight)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) {
         var currentX: CGFloat = bounds.minX
         var currentY: CGFloat = bounds.minY
         var rowHeight: CGFloat = 0
 
-        for subview in subviews {
-            let subviewSize = subview.sizeThatFits(.unspecified)
+        for (index, subview) in subviews.enumerated() {
+            let subviewSize = cache.subviewSizes[index]
 
             // Check if we need to wrap to next row
             if currentX + subviewSize.width > bounds.maxX && currentX > bounds.minX {
