@@ -131,11 +131,12 @@ struct WeekDateSelector: View {
                         // Recalculate index after regeneration to avoid mismatch
                         currentWeekIndex = weekIndexForDate(newDate)
                     } else {
-                        // Skip regeneration but still update index if valid
-                        currentWeekIndex = newIndex
+                        // Skip regeneration but still update index if valid (bounds-safe)
+                        currentWeekIndex = min(max(newIndex, 0), weeks.count - 1)
                     }
                 } else {
-                    currentWeekIndex = newIndex
+                    // Not at edge, safe to update index (bounds-safe for defensive coding)
+                    currentWeekIndex = min(max(newIndex, 0), weeks.count - 1)
                 }
             }
         }

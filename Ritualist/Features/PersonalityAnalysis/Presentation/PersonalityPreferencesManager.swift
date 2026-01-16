@@ -85,7 +85,8 @@ final class PersonalityPreferencesManager {
         return Date().timeIntervalSince(lastCheck) >= BusinessConstants.personalityAnalysisTriggerDebounceInterval
     }
 
-    /// Records the current time as the last trigger check
+    /// Records the current time as the last trigger check.
+    /// Note: Called from @MainActor context (class is @MainActor), ensuring thread-safe UserDefaults access.
     private func recordTriggerCheck() {
         userDefaults.set(Date(), forKey: UserDefaultsKeys.personalityLastTriggerCheckDate)
     }
