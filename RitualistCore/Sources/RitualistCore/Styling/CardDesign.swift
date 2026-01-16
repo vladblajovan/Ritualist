@@ -91,17 +91,43 @@ public struct CardDesign {
 
     // MARK: - Progress Colors
     public static let progressGreen = Color(hex: "#4CAF50") ?? .green
+    /// Light green for "almost complete" (80-99%) - distinct from full completion
+    public static let progressLightGreen = Color(hex: "#8BC34A") ?? .green.opacity(0.7)
     public static let progressOrange = Color(hex: "#FF9800") ?? .orange
+    /// Deep orange/coral for "getting started" (25-49%) - warmer than red
+    public static let progressCoral = Color(hex: "#FF7043") ?? .orange.opacity(0.8)
     public static let progressRed = Color(hex: "#F44336") ?? .red
     
     // MARK: - Progress Color Logic
-    public static func progressColor(for percentage: Double) -> Color {
-        if percentage >= 0.8 {
+    /// Returns progress color based on completion percentage
+    /// - Parameters:
+    ///   - percentage: Completion rate (0.0 to 1.0)
+    ///   - noProgressColor: Color to use when completion is zero (defaults to secondaryBackground)
+    /// - Returns: Color representing progress level
+    ///
+    /// Color mapping:
+    /// - 100%: Full green (complete)
+    /// - 80-99%: Light green (almost complete)
+    /// - 50-79%: Orange (good progress)
+    /// - 25-49%: Coral (getting started)
+    /// - 1-24%: Muted red (low progress)
+    /// - 0%: No progress color (customizable)
+    public static func progressColor(
+        for percentage: Double,
+        noProgressColor: Color = secondaryBackground
+    ) -> Color {
+        if percentage >= 1.0 {
             return progressGreen
+        } else if percentage >= 0.8 {
+            return progressLightGreen
         } else if percentage >= 0.5 {
             return progressOrange
+        } else if percentage >= 0.25 {
+            return progressCoral
+        } else if percentage > 0 {
+            return progressRed.opacity(0.6)
         } else {
-            return progressRed
+            return noProgressColor
         }
     }
 }

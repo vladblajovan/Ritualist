@@ -174,20 +174,12 @@ public struct CircularProgressView: View {
     public static func adaptiveProgressColors(for completion: Double) -> [Color] {
         let percentage = min(max(completion, 0.0), 1.0)
         let startColor = Color.ritualistIconBackground
-
-        if percentage < 0.5 {
-            // Low completion: Icon blue → Red gradient
-            return [startColor, CardDesign.progressRed]
-        } else if percentage < 0.8 {
-            // Medium completion: Icon blue → Orange gradient
-            return [startColor, CardDesign.progressOrange]
-        } else if percentage < 1.0 {
-            // High completion: Icon blue → Green gradient
-            return [startColor, CardDesign.progressGreen]
-        } else {
-            // 100% completion: Icon blue → Bright Green gradient
-            return [startColor, CardDesign.progressGreen]
-        }
+        // For rings, 0% shows muted red (not grey) to indicate "not started"
+        let endColor = CardDesign.progressColor(
+            for: percentage,
+            noProgressColor: CardDesign.progressRed.opacity(0.6)
+        )
+        return [startColor, endColor]
     }
 
     /// Returns adaptive gradient based on completion percentage

@@ -345,6 +345,15 @@ public enum Strings {
         public static let loadingStreaks = String(localized: "overview.loadingStreaks")
         public static let noActiveStreaks = String(localized: "overview.noActiveStreaks")
         public static let startCompletingHabits = String(localized: "overview.startCompletingHabits")
+
+        // No Habits Scheduled Info Sheet
+        public static let noHabitsInfoTitle = String(localized: "overview.noHabitsInfo.title")
+        public static let noHabitsReasonHeader = String(localized: "overview.noHabitsInfo.reasonHeader")
+        public static let noHabitsReasonScheduleTitle = String(localized: "overview.noHabitsInfo.schedule.title")
+        public static let noHabitsReasonScheduleDesc = String(localized: "overview.noHabitsInfo.schedule.desc")
+        public static let noHabitsReasonStartDateTitle = String(localized: "overview.noHabitsInfo.startDate.title")
+        public static let noHabitsReasonStartDateDesc = String(localized: "overview.noHabitsInfo.startDate.desc")
+        public static let noHabitsReasonFooter = String(localized: "overview.noHabitsInfo.footer")
     }
     
     // MARK: - Calendar
@@ -538,6 +547,7 @@ public enum Strings {
         public static let completedSectionHeader = String(localized: "accessibilityCompletedSectionHeader")
         public static let remainingSectionHeader = String(localized: "accessibilityRemainingSectionHeader")
         public static let noHabitsScheduledAccessibility = String(localized: "accessibilityNoHabitsScheduled")
+        public static let noHabitsInfoButton = String(localized: "accessibilityNoHabitsInfoButton")
         public static let loadingHabits = String(localized: "accessibilityLoadingHabits")
 
         // MARK: - Quick Actions Accessibility

@@ -282,21 +282,9 @@ struct WeekDateSelector: View {
         return weeklyData[normalizedDate] ?? 0.0
     }
 
-    /// Day circle color based on completion - matches MonthlyCalendarCard colors
+    /// Day circle color based on completion - uses CardDesign.progressColor
     private func dayCircleColor(completion: Double) -> Color {
-        // Same logic as MonthlyCalendarViewLogic.backgroundColor
-        if completion >= 1.0 {
-            return CardDesign.progressGreen
-        } else if completion >= 0.8 {
-            return CardDesign.progressGreen
-        } else if completion >= 0.5 {
-            return CardDesign.progressOrange
-        } else if completion > 0 {
-            return CardDesign.progressRed.opacity(0.6)
-        } else {
-            // No completion data: use subtle grey
-            return Color(.systemGray5)
-        }
+        CardDesign.progressColor(for: completion, noProgressColor: Color(.systemGray5))
     }
 
     /// Check if date is in the future relative to today

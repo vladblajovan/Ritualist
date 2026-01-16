@@ -276,23 +276,8 @@ public enum MonthlyCalendarViewLogic {
             return CardDesign.secondaryBackground
         }
 
-        // Past/today dates get color based on completion
-        // Matches gradient thresholds: 0-50% red, 50-80% orange, 80-100% green, 100% full green
-        if context.completion >= 1.0 {
-            return CardDesign.progressGreen
-        }
-        if context.completion >= 0.8 {
-            return CardDesign.progressGreen
-        }
-        if context.completion >= 0.5 {
-            return CardDesign.progressOrange
-        }
-        if context.completion > 0 {
-            return CardDesign.progressRed.opacity(0.6)
-        }
-
-        // No progress
-        return CardDesign.secondaryBackground
+        // Past/today dates get color based on completion (includes zero → secondaryBackground)
+        return CardDesign.progressColor(for: context.completion)
     }
 
     // MARK: - Text Color Logic

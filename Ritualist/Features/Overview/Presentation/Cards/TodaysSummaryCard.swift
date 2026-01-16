@@ -46,6 +46,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var showingScheduleInfoSheet = false
+    @State private var showingNoHabitsInfoSheet = false
     @State private var habitToUncomplete: Habit?
     @State private var animatingHabitId: UUID?
     @State private var glowingHabitId: UUID?
@@ -432,11 +433,24 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Text(Strings.EmptyState.noHabitsScheduled)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.secondary)
+
+            Button {
+                showingNoHabitsInfoSheet = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel(Strings.Accessibility.noHabitsInfoButton)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Strings.Accessibility.noHabitsScheduledAccessibility)
+        .sheet(isPresented: $showingNoHabitsInfoSheet) {
+            NoHabitsScheduledInfoSheet()
+        }
     }
 
     // MARK: - Enhanced Habits Section
@@ -649,14 +663,22 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     }
 
     /// Single compact habit circle (36pt) with green background and border
+    /// Tapping shows the uncomplete confirmation (binary) or adjustment sheet (numeric)
     @ViewBuilder
     private func compactHabitCircle(habit: Habit) -> some View {
         Button {
-            // Same action as tapping the full habit row
-            if let action = onBinaryHabitAction, habit.kind == .binary {
-                action(habit)
-            } else if let action = onNumericHabitAction, habit.kind == .numeric {
-                action(habit)
+            // Same action as tapping a completed habit in expanded view
+            // Dismiss tips and show appropriate sheet
+            TapCompletedHabitTip.wasDismissed.sendDonation()
+            LongPressLogTip.shouldShowLongPressTip.sendDonation()
+            tapCompletedHabitTip.invalidate(reason: .actionPerformed)
+
+            if habit.kind == .numeric {
+                // Numeric: show adjustment sheet
+                onNumericHabitAction?(habit)
+            } else {
+                // Binary: show uncomplete confirmation
+                habitToUncomplete = habit
             }
         } label: {
             Text(habit.emoji ?? "✓")
@@ -714,6 +736,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     }
 
     /// Single compact remaining habit circle (36pt) with brand color background and border
+    /// Tapping shows the mark-complete confirmation (binary) or logging sheet (numeric)
     @ViewBuilder
     private func compactRemainingHabitCircle(habit: Habit) -> some View {
         let scheduleStatus = getScheduleStatus(habit)
@@ -721,10 +744,15 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
         Button {
             guard !isDisabled else { return }
-            if let action = onBinaryHabitAction, habit.kind == .binary {
-                action(habit)
-            } else if let action = onNumericHabitAction, habit.kind == .numeric {
-                action(habit)
+            // Same action as tapping an incomplete habit in expanded view
+            // Dismiss tips and show appropriate sheet
+            TapHabitTip.wasDismissed.sendDonation()
+            tapHabitTip.invalidate(reason: .actionPerformed)
+
+            if habit.kind == .numeric {
+                onNumericHabitAction?(habit)
+            } else {
+                onBinaryHabitAction?(habit)
             }
         } label: {
             Text(habit.emoji ?? "📊")
@@ -1180,6 +1208,72 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         animatingHabitId = nil
         animatingProgress = 0.0
         isAnimatingCompletion = false
+    }
+}
+
+// MARK: - No Habits Scheduled Info Sheet
+
+private struct NoHabitsScheduledInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    NoHabitsExplanationRow(
+                        icon: "calendar.badge.clock",
+                        iconColor: .orange,
+                        title: Strings.Overview.noHabitsReasonScheduleTitle,
+                        description: Strings.Overview.noHabitsReasonScheduleDesc
+                    )
+
+                    NoHabitsExplanationRow(
+                        icon: "calendar.badge.exclamationmark",
+                        iconColor: .blue,
+                        title: Strings.Overview.noHabitsReasonStartDateTitle,
+                        description: Strings.Overview.noHabitsReasonStartDateDesc
+                    )
+                } header: {
+                    Text(Strings.Overview.noHabitsReasonHeader)
+                } footer: {
+                    Text(Strings.Overview.noHabitsReasonFooter)
+                }
+            }
+            .navigationTitle(Strings.Overview.noHabitsInfoTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(Strings.Button.done) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct NoHabitsExplanationRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(iconColor)
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

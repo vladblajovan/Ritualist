@@ -505,6 +505,18 @@
         }
       }
     },
+    "accessibilityNoHabitsInfoButton" : {
+      "comment" : "VoiceOver label for the info button next to no habits scheduled message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Learn why no habits are scheduled"
+          }
+        }
+      }
+    },
     "accessibilityNoHabitsScheduled" : {
       "comment" : "VoiceOver label when no habits are scheduled",
       "extractionState" : "manual",
@@ -7515,6 +7527,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No active streaks"
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Habits tab to review your habit schedules and settings."
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.reasonHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why am I seeing this?"
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.schedule.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No habits scheduled for this day. Go to Habits tab to adjust schedules."
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.schedule.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not scheduled for this day"
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.startDate.desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habit start date may be after this day. Edit the habit to change it."
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.startDate.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habit hasn't started yet"
+          }
+        }
+      }
+    },
+    "overview.noHabitsInfo.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Habits Scheduled"
           }
         }
       }
