@@ -90,7 +90,7 @@ public actor TestNotificationService: NotificationService {
     nonisolated public func checkAuthorizationStatus() async -> Bool { return true }
     nonisolated public func schedule(for habitID: UUID, times: [ReminderTime]) async throws {}
     nonisolated public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {}
-    nonisolated public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime) async throws {}
+    nonisolated public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int, habitCategory: String?, currentStreak: Int, isWeekend: Bool) async throws {}
     nonisolated public func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws {}
     nonisolated public func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws {}
     nonisolated public func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {}
@@ -185,7 +185,7 @@ public actor TrackingNotificationService: NotificationService {
     nonisolated public func schedule(for habitID: UUID, times: [ReminderTime]) async throws {}
     nonisolated public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {}
 
-    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime) async throws {
+    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int, habitCategory: String?, currentStreak: Int, isWeekend: Bool) async throws {
         scheduledNotifications.append(ScheduledNotification(
             habitID: habitID,
             habitName: habitName,

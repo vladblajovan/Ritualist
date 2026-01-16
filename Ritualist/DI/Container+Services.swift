@@ -172,9 +172,12 @@ extension Container {
         self {
             RitualistCore.DefaultDailyNotificationScheduler(
                 habitRepository: self.habitRepository(),
+                categoryRepository: self.categoryRepository(),
+                logRepository: self.logRepository(),
                 habitCompletionCheckService: self.habitCompletionCheckService(),
                 notificationService: self.notificationService(),
                 subscriptionService: self.subscriptionService(),
+                streakCalculationService: self.streakCalculationService(),
                 logger: self.debugLogger()
             )
         }

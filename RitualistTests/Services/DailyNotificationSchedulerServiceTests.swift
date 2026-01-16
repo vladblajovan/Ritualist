@@ -38,8 +38,10 @@ struct DailyNotificationSchedulerServiceTests {
         // Create REAL data source and repository
         let habitDataSource = HabitLocalDataSource(modelContainer: container)
         let logDataSource = LogLocalDataSource(modelContainer: container)
+        let categoryDataSource = CategoryLocalDataSource(modelContainer: container)
         let habitRepository = HabitRepositoryImpl(local: habitDataSource)
         let logRepository = LogRepositoryImpl(local: logDataSource)
+        let categoryRepository = CategoryRepositoryImpl(local: categoryDataSource)
 
         // Use test implementations for NotificationService (system dependency)
         let testNotificationService = notificationService ?? TrackingNotificationService()
@@ -58,11 +60,20 @@ struct DailyNotificationSchedulerServiceTests {
             timezoneService: timezoneService
         )
 
+        // Create streak calculation service
+        let streakCalculationService = DefaultStreakCalculationService(
+            habitCompletionService: habitCompletionService,
+            logger: logger
+        )
+
         let scheduler = DefaultDailyNotificationScheduler(
             habitRepository: habitRepository,
+            categoryRepository: categoryRepository,
+            logRepository: logRepository,
             habitCompletionCheckService: completionCheck,
             notificationService: testNotificationService,
             subscriptionService: subscription,
+            streakCalculationService: streakCalculationService,
             logger: logger
         )
 
@@ -275,8 +286,10 @@ struct DailyNotificationSchedulerServiceTests {
         // Create a mock completion check service
         let habitDataSource = HabitLocalDataSource(modelContainer: container)
         let logDataSource = LogLocalDataSource(modelContainer: container)
+        let categoryDataSource = CategoryLocalDataSource(modelContainer: container)
         let habitRepository = HabitRepositoryImpl(local: habitDataSource)
         let logRepository = LogRepositoryImpl(local: logDataSource)
+        let categoryRepository = CategoryRepositoryImpl(local: categoryDataSource)
         let habitCompletionService = DefaultHabitCompletionService()
         let timezoneService = MockTimezoneService()
         let completionCheck = DefaultHabitCompletionCheckService(
@@ -286,11 +299,20 @@ struct DailyNotificationSchedulerServiceTests {
             timezoneService: timezoneService
         )
 
+        // Create streak calculation service
+        let streakCalculationService = DefaultStreakCalculationService(
+            habitCompletionService: habitCompletionService,
+            logger: logger
+        )
+
         let service = DefaultDailyNotificationScheduler(
             habitRepository: failingRepo,
+            categoryRepository: categoryRepository,
+            logRepository: logRepository,
             habitCompletionCheckService: completionCheck,
             notificationService: notificationService,
             subscriptionService: TestSubscriptionService(isPremium: true),
+            streakCalculationService: streakCalculationService,
             logger: logger
         )
 

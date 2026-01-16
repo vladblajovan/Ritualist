@@ -10,9 +10,8 @@ extension Container {
     
     var scheduleHabitReminders: Factory<ScheduleHabitRemindersUseCase> {
         self { ScheduleHabitReminders(
-            habitRepository: self.habitRepository(),
+            dailyNotificationScheduler: self.dailyNotificationScheduler(),
             notificationService: self.notificationService(),
-            habitCompletionCheckService: self.habitCompletionCheckService(),
             logger: self.debugLogger()
         )}
     }
