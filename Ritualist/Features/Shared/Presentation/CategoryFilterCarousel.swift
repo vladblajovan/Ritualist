@@ -113,6 +113,7 @@ public struct CategoryFilterCarousel: View {
                         // Category chips
                         ForEach(categories, id: \.id) { category in
                             Button {
+                                HapticFeedbackService.shared.trigger(.light)
                                 // Toggle: if already selected, deselect; otherwise select
                                 if selectedCategory?.id == category.id {
                                     onCategorySelect(nil)

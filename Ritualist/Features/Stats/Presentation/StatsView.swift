@@ -91,6 +91,7 @@ public struct StatsView: View {
             }
             .refreshable {
                 await vm.refresh()
+                HapticFeedbackService.shared.trigger(.light)
             }
             .task {
                 isPremiumUser = await featureGatingService.hasAdvancedAnalytics()
@@ -418,6 +419,7 @@ public struct StatsView: View {
     @ViewBuilder
     private func categoryRow(category: StatsViewModel.CategoryPerformanceViewModel) -> some View {
         Button {
+            HapticFeedbackService.shared.trigger(.light)
             navigationService.navigateToHabits(withCategoryId: category.id)
         } label: {
             HStack(spacing: 12) {

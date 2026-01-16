@@ -134,6 +134,21 @@ private struct SettingsFormView: View {
                     }
                     #endif
 
+                    // App Settings Section
+                    Section(Strings.Settings.sectionApp) {
+                        NavigationLink {
+                            AppSettingsView()
+                        } label: {
+                            Label {
+                                Text(Strings.Settings.appSettings)
+                            } icon: {
+                                Image(systemName: "gearshape")
+                                    .font(.title2)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+
                     // Appearance Section
                     Section(Strings.Settings.sectionAppearance) {
                         HStack {

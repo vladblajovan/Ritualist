@@ -18,6 +18,7 @@ public struct LocationConfigurationSection: View {
             Toggle(isOn: Binding(
                 get: { vm.locationConfiguration?.isEnabled ?? false },
                 set: { newValue in
+                    HapticFeedbackService.shared.trigger(.selection)
                     if newValue && !vm.isPremiumUser {
                         // Show paywall when non-premium user tries to enable
                         // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify

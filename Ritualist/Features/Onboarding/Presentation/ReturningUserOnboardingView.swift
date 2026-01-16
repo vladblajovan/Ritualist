@@ -85,6 +85,7 @@ struct ReturningUserOnboardingView: View {
             }
         }
         .onChange(of: currentStep) { _, newStep in
+            HapticFeedbackService.shared.trigger(.light)
             announceStepChange(newStep)
         }
         .alert(Strings.Common.error, isPresented: .init(

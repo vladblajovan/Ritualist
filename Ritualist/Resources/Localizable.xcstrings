@@ -9418,6 +9418,72 @@
         }
       }
     },
+    "settingsAppSettings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Settings"
+          }
+        }
+      }
+    },
+    "settingsSectionApp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        }
+      }
+    },
+    "settingsSectionFeedback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedback"
+          }
+        }
+      }
+    },
+    "settingsHapticFeedback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptic Feedback"
+          }
+        }
+      }
+    },
+    "settingsHapticFeedbackDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feel subtle vibrations for actions"
+          }
+        }
+      }
+    },
+    "settingsHapticFeedbackFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tactile feedback for completing habits and actions. Respects system settings."
+          }
+        }
+      }
+    },
     "settingsVisitWebsite" : {
       "extractionState" : "manual",
       "localizations" : {

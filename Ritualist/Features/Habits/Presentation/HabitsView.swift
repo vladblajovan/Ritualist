@@ -213,6 +213,7 @@ private struct HabitsListView: View {
                 icon: isEditMode ? "checkmark" : "pencil",
                 accessibilityLabel: isEditMode ? "Done editing" : "Edit habits"
             ) {
+                HapticFeedbackService.shared.trigger(.light)
                 withAnimation {
                     editMode?.wrappedValue = isEditMode ? .inactive : .active
                 }
@@ -325,6 +326,7 @@ private struct HabitsListView: View {
                                 .swipeActions(edge: .leading) {
                                     if editMode?.wrappedValue != .active {
                                         Button {
+                                            HapticFeedbackService.shared.trigger(.medium)
                                             // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
                                             Task { @MainActor in
                                                 await vm.toggleActiveStatus(id: habit.id)
@@ -356,6 +358,7 @@ private struct HabitsListView: View {
                 }
                 .refreshable {
                     await vm.refresh()
+                    HapticFeedbackService.shared.trigger(.light)
                 }
                 .onChange(of: editMode?.wrappedValue) { oldValue, newValue in
                     if oldValue == .active && newValue != .active {
@@ -415,6 +418,7 @@ private struct HabitsListView: View {
         .alert("Delete Habit", isPresented: $showingDeleteConfirmation) {
             Button(Strings.Common.delete, role: .destructive) {
                 if let habit = habitToDelete {
+                    HapticFeedbackService.shared.trigger(.heavy)
                     // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
                     Task { @MainActor in
                         await deleteHabit(habit)
@@ -432,6 +436,7 @@ private struct HabitsListView: View {
         }
         .alert("Delete Habits", isPresented: $showingBatchDeleteConfirmation) {
             Button(Strings.Common.delete, role: .destructive) {
+                HapticFeedbackService.shared.trigger(.heavy)
                 // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
                 Task { @MainActor in
                     logger.log(

@@ -174,7 +174,10 @@ struct WeekDateSelector: View {
 
             // Right side: Return to Today button
             // Always rendered to prevent layout jump, but hidden when viewing today
-            Button(action: onGoToToday) {
+            Button {
+                HapticFeedbackService.shared.trigger(.light)
+                onGoToToday()
+            } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
@@ -209,6 +212,7 @@ struct WeekDateSelector: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         .frame(height: 85) // Increased to accommodate today dot
         .padding(.horizontal, -Spacing.large) // Negative padding for full width
+        .sensoryFeedback(.selection, trigger: currentWeekIndex) // Haptic on page snap
     }
 
     // MARK: - Week Row

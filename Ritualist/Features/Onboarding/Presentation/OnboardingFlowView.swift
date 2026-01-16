@@ -60,6 +60,7 @@ private struct OnboardingContentView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut, value: viewModel.currentPage)
+            .sensoryFeedback(.selection, trigger: viewModel.currentPage) // Haptic on page change
 
             // Progress indicator
             OnboardingProgressView(currentPage: viewModel.currentPage, totalPages: viewModel.totalPages)
@@ -122,6 +123,7 @@ private struct OnboardingNavigationView: View {
             // Skip button on first page, Back button on subsequent pages
             if viewModel.isFirstPage {
                 Button {
+                    HapticFeedbackService.shared.trigger(.light)
                     Task {
                         let success = await viewModel.skipOnboarding()
                         if success {
@@ -145,6 +147,7 @@ private struct OnboardingNavigationView: View {
                 .accessibilityHint(Strings.Onboarding.skipHint)
             } else {
                 Button {
+                    HapticFeedbackService.shared.trigger(.light)
                     viewModel.previousPage()
                 } label: {
                     Text(Strings.Onboarding.back)
@@ -167,6 +170,7 @@ private struct OnboardingNavigationView: View {
 
             // Next/Complete button
             Button {
+                HapticFeedbackService.shared.trigger(.light)
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
                 if viewModel.isLastPage {

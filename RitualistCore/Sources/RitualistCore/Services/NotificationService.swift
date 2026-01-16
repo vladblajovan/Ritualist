@@ -346,8 +346,10 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         }
 
         content.sound = .default
-        // Badge is managed by updateBadgeCount() on app activation, not set per-notification
-        // This prevents stale badges after app reinstall (iOS doesn't clear pending notifications)
+        // Hybrid badge approach: set expected badge for background notifications
+        // willPresent recalculates for foreground; updateBadgeCount corrects on app activation
+        let expectedBadge = await calculateExpectedBadgeCount()
+        content.badge = NSNumber(value: expectedBadge)
 
         // Use different category based on habit type
         content.categoryIdentifier = habitKind == .binary ?
@@ -510,6 +512,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
         let secondOffset = Self.secondOffset(for: habitID)
 
+        // Calculate expected badge once for all notifications in this batch
+        let expectedBadge = await calculateExpectedBadgeCount()
+
         for time in times {
             // Generate rich notification content
             let content = HabitReminderNotificationContentGenerator.generateContent(
@@ -520,6 +525,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                 currentStreak: currentStreak,
                 isWeekend: isWeekend
             )
+
+            // Set badge for background notifications (willPresent recalculates for foreground)
+            content.badge = NSNumber(value: expectedBadge)
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
@@ -587,6 +595,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
         let secondOffset = Self.secondOffset(for: habitID)
 
+        // Calculate expected badge once for all notifications in this batch
+        let expectedBadge = await calculateExpectedBadgeCount()
+
         for time in times {
             // Generate personality-tailored notification content
             let content = PersonalityTailoredNotificationContentGenerator.generateTailoredContent(
@@ -598,6 +609,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                 currentStreak: currentStreak,
                 isWeekend: isWeekend
             )
+
+            // Set badge for background notifications (willPresent recalculates for foreground)
+            content.badge = NSNumber(value: expectedBadge)
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
@@ -900,6 +914,15 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     }
 
     // MARK: - Badge Management
+
+    /// Calculates the expected badge count for a new notification being scheduled.
+    /// Uses current delivered count + pending habit notifications scheduled before this time.
+    /// This provides a reasonable estimate for background notifications where willPresent isn't called.
+    private func calculateExpectedBadgeCount() async -> Int {
+        let delivered = await getDeliveredNotificationsCached()
+        let currentBadge = delivered.filter(isHabitNotificationForBadge).count
+        return currentBadge + 1
+    }
 
     /// Determines if a notification should be counted toward the app badge.
     /// Habit notifications ARE counted; catch-up and personality notifications are NOT.

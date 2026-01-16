@@ -192,6 +192,16 @@ public enum Strings {
         public static let acknowledgementsIntro = String(localized: "settingsAcknowledgementsIntro")
         public static let factoryDescription = String(localized: "settingsFactoryDescription")
         public static let viewOnGitHub = String(localized: "settingsViewOnGitHub")
+
+        // App Settings
+        public static let appSettings = String(localized: "settingsAppSettings")
+        public static let sectionApp = String(localized: "settingsSectionApp")
+
+        // Haptic Feedback
+        public static let sectionFeedback = String(localized: "settingsSectionFeedback")
+        public static let hapticFeedback = String(localized: "settingsHapticFeedback")
+        public static let hapticFeedbackDescription = String(localized: "settingsHapticFeedbackDescription")
+        public static let hapticFeedbackFooter = String(localized: "settingsHapticFeedbackFooter")
     }
 
     // MARK: - Timezone Settings

@@ -195,6 +195,7 @@ private struct SettingsView: View {
                     Toggle("Enable Analysis", isOn: $isEnabled)
                         .disabled(isToggling)
                         .onChange(of: isEnabled) { _, newValue in
+                            HapticFeedbackService.shared.trigger(.selection)
                             Task {
                                 isToggling = true
                                 await viewModel.setAnalysisEnabled(newValue)

@@ -56,6 +56,7 @@ public struct CategoryManagementView: View {
                     }
 
                     Button(Strings.Common.add) {
+                        HapticFeedbackService.shared.trigger(.light)
                         showingAddCategory = true
                     }
                     .disabled(vm.isLoading)

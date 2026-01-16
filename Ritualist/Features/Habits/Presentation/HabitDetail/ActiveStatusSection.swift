@@ -11,10 +11,11 @@ import RitualistCore
 
 public struct ActiveStatusSection: View {
     @Bindable var vm: HabitDetailViewModel
-    
+
     public var body: some View {
         Section {
             Button {
+                HapticFeedbackService.shared.trigger(.selection)
                 // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
                 Task { @MainActor in
                     await vm.toggleActiveStatus()
