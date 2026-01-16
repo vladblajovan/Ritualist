@@ -870,26 +870,27 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
     // MARK: - Badge Management
 
+    /// Determines if a notification should be counted toward the app badge.
+    /// Habit notifications ARE counted; catch-up and personality notifications are NOT.
+    private func isHabitNotificationForBadge(_ notification: UNNotification) -> Bool {
+        let id = notification.request.identifier
+        let userInfo = notification.request.content.userInfo
+        let isCatchUp = userInfo["isCatchUp"] as? Bool ?? id.hasPrefix("catchup_")
+
+        // Catch-up notifications fire in foreground and may not be interacted with
+        guard !isCatchUp else { return false }
+
+        return id.hasPrefix("today_") ||
+               id.hasPrefix("rich_") ||
+               id.hasPrefix("tailored_") ||
+               userInfo["habitId"] != nil
+    }
+
     /// Updates the app badge to show the count of delivered (unread) habit notifications
     public func updateBadgeCount() async {
         let center = UNUserNotificationCenter.current()
         let delivered = await center.deliveredNotifications()
-
-        // Count only habit-related notifications (not personality analysis, catch-up, etc.)
-        // Catch-up notifications are excluded because they fire in foreground and may not be interacted with
-        let habitNotificationCount = delivered.filter { notification in
-            let id = notification.request.identifier
-            let userInfo = notification.request.content.userInfo
-            let isCatchUp = userInfo["isCatchUp"] as? Bool ?? id.hasPrefix("catchup_")
-
-            // Exclude catch-up notifications from badge count
-            guard !isCatchUp else { return false }
-
-            return id.hasPrefix("today_") ||
-                   id.hasPrefix("rich_") ||
-                   id.hasPrefix("tailored_") ||
-                   userInfo["habitId"] != nil
-        }.count
+        let habitNotificationCount = delivered.filter(isHabitNotificationForBadge).count
 
         try? await UNUserNotificationCenter.current().setBadgeCount(habitNotificationCount)
 
@@ -905,21 +906,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     public func decrementBadge() async {
         let center = UNUserNotificationCenter.current()
         let delivered = await center.deliveredNotifications()
-
-        // Count remaining habit notifications (excluding catch-up notifications)
-        let habitNotificationCount = delivered.filter { notification in
-            let id = notification.request.identifier
-            let userInfo = notification.request.content.userInfo
-            let isCatchUp = userInfo["isCatchUp"] as? Bool ?? id.hasPrefix("catchup_")
-
-            // Exclude catch-up notifications from badge count
-            guard !isCatchUp else { return false }
-
-            return id.hasPrefix("today_") ||
-                   id.hasPrefix("rich_") ||
-                   id.hasPrefix("tailored_") ||
-                   userInfo["habitId"] != nil
-        }.count
+        let habitNotificationCount = delivered.filter(isHabitNotificationForBadge).count
 
         // Badge should reflect delivered notifications minus 1 (the one being handled)
         let newCount = max(0, habitNotificationCount - 1)

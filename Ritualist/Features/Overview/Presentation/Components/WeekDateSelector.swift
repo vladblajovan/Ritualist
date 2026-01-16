@@ -86,11 +86,14 @@ struct WeekDateSelector: View {
     }
 
     /// Find which week index contains the selected date
+    /// Returns a bounds-safe index (clamped to valid array range)
     private func weekIndexForDate(_ date: Date) -> Int {
         for (index, week) in weeks.enumerated() where week.contains(where: { CalendarUtils.areSameDayLocal($0, date, timezone: timezone) }) {
             return index
         }
-        return Self.weeksBuffer
+        // Fallback to center, clamped to valid bounds
+        let fallback = Self.weeksBuffer
+        return weeks.isEmpty ? 0 : min(fallback, weeks.count - 1)
     }
 
     // MARK: - Body

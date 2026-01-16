@@ -141,8 +141,10 @@ public final class PersonalityInsightsViewModel {
                 if let generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId) {
                     viewState = .ready(profile: generatedProfile)
                 } else {
-                    // User met eligibility but profile generation failed silently
-                    // This indicates an unexpected error in the analysis pipeline
+                    // User met eligibility but profile generation failed silently.
+                    // This indicates an unexpected internal error (scheduler/repository issue).
+                    // Generic message is intentional: user can't act on internal details,
+                    // retry is the only actionable advice. Detailed logging captures context for debugging.
                     logger.log("Analysis triggered for eligible user but profile not created - possible scheduler/repository issue", level: .error, category: .personality)
                     viewState = .error(.unknownError("Unable to generate your personality analysis. Please try again."))
                 }
