@@ -41,8 +41,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onDateSelected: (Date) -> Void
     let isLoggingLocked: Bool // When true, all habit logging is disabled (over habit limit)
     
-    @State private var isCompletedViewCompact = true  // Compact view shows only emoji circles
-    @State private var isRemainingViewCompact = false  // Remaining habits show expanded by default (user needs to see what to do)
+    // Persisted view state - survives navigation and app restarts
+    @AppStorage(UserDefaultsKeys.todaySummaryCompletedViewCompact) private var isCompletedViewCompact = true
+    @AppStorage(UserDefaultsKeys.todaySummaryRemainingViewCompact) private var isRemainingViewCompact = false
     @State private var showingDeleteAlert = false
     @State private var habitToDelete: Habit?
     @State private var showingScheduleInfoSheet = false

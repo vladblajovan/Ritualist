@@ -308,6 +308,7 @@ private struct PersonalityProfileView: View {
                 let showBanner = insightsVM.hasUnseenAnalysis
                 if showBanner {
                     newAnalysisBanner
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
                 dominantTraitSection

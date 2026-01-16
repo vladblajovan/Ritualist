@@ -125,6 +125,18 @@ public enum UserDefaultsKeys {
     /// Type: Bool (default: true via @AppStorage)
     public static let showStreakAtRiskIcon = "com.ritualist.habitIcons.showStreakAtRisk"
 
+    // MARK: - Today Summary View State
+    // Note: Persists user's compact/expanded preference for habit sections.
+    // No migration needed - missing keys use sensible defaults.
+
+    /// Key for persisting completed habits section compact/expanded state.
+    /// Type: Bool (default: true - compact, shows emoji circles only)
+    public static let todaySummaryCompletedViewCompact = "com.ritualist.todaySummary.completedViewCompact"
+
+    /// Key for persisting remaining habits section compact/expanded state.
+    /// Type: Bool (default: false - expanded, shows full habit rows)
+    public static let todaySummaryRemainingViewCompact = "com.ritualist.todaySummary.remainingViewCompact"
+
     // MARK: - Notifications
 
     /// Key for storing habit IDs that received catch-up notifications today
