@@ -15,7 +15,6 @@ public struct PersonalityInsightsView: View {
     @State private var viewModel: PersonalityInsightsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingPrivacy = false
-    @Injected(\.notificationService) private var notificationService
     
     public init(viewModel: PersonalityInsightsViewModel) {
         self._viewModel = State(wrappedValue: viewModel)
@@ -95,11 +94,6 @@ public struct PersonalityInsightsView: View {
         .scrollContentBackground(.hidden)
         .task {
             await viewModel.loadPersonalityInsights()
-        }
-        .task {
-            // Clear only personality-related notifications and update badge count
-            // This preserves habit reminder badges while clearing personality notifications
-            await notificationService.clearPersonalityNotifications()
         }
         .fullScreenCover(isPresented: $showingPrivacy) {
             SettingsView()
@@ -298,6 +292,7 @@ private struct PersonalityProfileView: View {
     @State private var showingConfidenceInfo = false
     @Injected(\.settingsViewModel) private var settingsVM
     @Injected(\.personalityInsightsViewModel) private var insightsVM
+    @Injected(\.notificationService) private var notificationService
 
     // Avatar sizing (larger than header avatar)
     private let avatarSize: CGFloat = 72
@@ -539,6 +534,8 @@ private struct PersonalityProfileView: View {
             Button {
                 Task { @MainActor in
                     await insightsVM.markAnalysisAsSeen()
+                    // Clear personality notifications only after user acknowledges the new analysis
+                    await notificationService.clearPersonalityNotifications()
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")

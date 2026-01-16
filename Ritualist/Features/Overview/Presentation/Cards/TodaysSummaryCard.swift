@@ -37,6 +37,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     let onPreviousDay: () -> Void
     let onNextDay: () -> Void
     let onGoToToday: () -> Void
+    /// Direct date selection callback - prevents race conditions from rapid sequential day callbacks
+    let onDateSelected: (Date) -> Void
     let isLoggingLocked: Bool // When true, all habit logging is disabled (over habit limit)
     
     @State private var isCompletedSectionExpanded = false
@@ -120,6 +122,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
          onPreviousDay: @escaping () -> Void,
          onNextDay: @escaping () -> Void,
          onGoToToday: @escaping () -> Void,
+         onDateSelected: @escaping (Date) -> Void,
          isLoggingLocked: Bool = false) {
         self.summary = summary
         self.viewingDate = viewingDate
@@ -142,6 +145,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         self.onPreviousDay = onPreviousDay
         self.onNextDay = onNextDay
         self.onGoToToday = onGoToToday
+        self.onDateSelected = onDateSelected
         self.isLoggingLocked = isLoggingLocked
     }
 
@@ -284,42 +288,9 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             canGoToNext: canGoToNext,
             isViewingToday: isViewingToday,
             weeklyData: weeklyData,
-            onDateSelected: { date in
-                navigateToDate(date)
-            },
+            onDateSelected: onDateSelected,
             onGoToToday: onGoToToday
         )
-    }
-
-    // MARK: - Date Navigation Helpers
-
-    /// Navigate to a specific date by calculating the difference and calling day callbacks
-    private func navigateToDate(_ targetDate: Date) {
-        var cal = Calendar.current
-        cal.timeZone = timezone
-
-        let targetDay = cal.startOfDay(for: targetDate)
-        let viewingDay = cal.startOfDay(for: viewingDate)
-
-        // If same day, no navigation needed
-        if cal.isDate(targetDate, inSameDayAs: viewingDate) {
-            return
-        }
-
-        // Calculate days difference and navigate
-        if let daysDiff = cal.dateComponents([.day], from: viewingDay, to: targetDay).day {
-            if daysDiff > 0 {
-                // Going forward
-                for _ in 0..<daysDiff where canGoToNext {
-                    onNextDay()
-                }
-            } else if daysDiff < 0 {
-                // Going backward
-                for _ in 0..<abs(daysDiff) where canGoToPrevious {
-                    onPreviousDay()
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -722,8 +693,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             habitRowMainButton(habit: habit, isCompleted: isCompleted, scheduleStatus: scheduleStatus, isDisabled: isDisabled)
             habitRowTrailingButton(habit: habit, isCompleted: isCompleted, scheduleStatus: scheduleStatus)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(6)
         .background(habitRowBackground(isCompleted: isCompleted, isDisabled: isDisabled))
         .overlay(habitRowBorder(isCompleted: isCompleted, isDisabled: isDisabled))
         .opacity(isDisabled ? 0.6 : 1.0)
@@ -1025,12 +995,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     }
 
     private func habitRowBackground(isCompleted: Bool, isDisabled: Bool) -> some View {
-        RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
+        RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
             .fill(isCompleted ? Color.green.opacity(0.1) : (isDisabled ? CardDesign.secondaryBackground.opacity(0.5) : AppColors.brand.opacity(0.1)))
     }
 
     private func habitRowBorder(isCompleted: Bool, isDisabled: Bool) -> some View {
-        RoundedRectangle(cornerRadius: CardDesign.innerCornerRadius)
+        RoundedRectangle(cornerRadius: CardDesign.cornerRadius)
             .stroke(isCompleted ? Color.green.opacity(0.2) : (isDisabled ? Color.secondary.opacity(0.1) : AppColors.brand.opacity(0.2)), lineWidth: 1)
     }
     
@@ -1168,10 +1138,11 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             getValidationMessage: { _ in nil },
             onPreviousDay: { },
             onNextDay: { },
-            onGoToToday: { }
+            onGoToToday: { },
+            onDateSelected: { _ in }
         )
-        
-        // Past day state  
+
+        // Past day state
         TodaysSummaryCard(
             summary: TodaysSummary(
                 completedHabitsCount: 2,
@@ -1206,7 +1177,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             getValidationMessage: { _ in nil },
             onPreviousDay: { },
             onNextDay: { },
-            onGoToToday: { }
+            onGoToToday: { },
+            onDateSelected: { _ in }
         )
     }
     .padding()

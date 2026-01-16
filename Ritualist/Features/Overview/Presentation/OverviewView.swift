@@ -181,6 +181,9 @@ public struct OverviewView: View {
             onGoToToday: {
                 vm.goToToday()
             },
+            onDateSelected: { date in
+                vm.goToDate(date)
+            },
             isLoggingLocked: vm.showDeactivateHabitsBanner
         )
         .cardStyle()

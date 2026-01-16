@@ -26,6 +26,7 @@ struct WeekDateSelector: View {
     /// Number of weeks to show on each side of the current week
     private let weeksBuffer = 4
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var currentWeekIndex: Int
     @State private var weeks: [[Date]] = []
 
@@ -194,7 +195,7 @@ struct WeekDateSelector: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 12)
     }
 
     // MARK: - Day Column
@@ -257,6 +258,10 @@ struct WeekDateSelector: View {
                 RoundedRectangle(cornerRadius: 22)
                     .fill(dayBackgroundColor(isSelected: isSelected, isFuture: isFutureDate))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22)
+                    .stroke(AppColors.brand.opacity(0.2), lineWidth: isSelected ? 1 : 0)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
@@ -309,13 +314,20 @@ struct WeekDateSelector: View {
 
     /// Day background color - ALL days have rounded rectangle backgrounds
     /// Active/tappable days are MORE visible than inactive future days
+    /// Uses systemGray6 in light mode, systemGray5 in dark mode for optimal contrast
     private func dayBackgroundColor(isSelected: Bool, isFuture: Bool) -> Color {
+        // systemGray6 is lightest in light mode but darkest in dark mode (iOS inverts)
+        // So we use systemGray5 in dark mode for better visibility
+        let baseGray = colorScheme == .dark ? Color(.systemGray5) : Color(.systemGray6)
+
         if isSelected {
-            return AppColors.brand.opacity(0.12)  // Selected: brand highlight
+            // Higher opacity in dark mode for better visibility
+            let selectedOpacity = colorScheme == .dark ? 0.25 : 0.12
+            return AppColors.brand.opacity(selectedOpacity)
         } else if isFuture {
-            return Color(.systemGray6).opacity(0.6)  // Inactive: faded, less prominent
+            return baseGray.opacity(0.6)  // Inactive: faded, less prominent
         } else {
-            return Color(.systemGray6)  // Active/tappable: full opacity, more visible
+            return baseGray  // Active/tappable: full visibility
         }
     }
 
