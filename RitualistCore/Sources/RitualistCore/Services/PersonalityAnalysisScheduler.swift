@@ -312,39 +312,51 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     
     // MARK: - Persistence
 
-    /// Saves scheduler state to UserDefaults. Logs errors but does not throw,
-    /// as persistence failures should not block scheduling operations.
+    /// Saves scheduler state to UserDefaults asynchronously to avoid blocking the actor.
+    /// Logs errors but does not throw, as persistence failures should not block scheduling operations.
     private func saveSchedulerState() {
-        let encoder = JSONEncoder()
-        var persistenceErrors: [String] = []
+        // Capture state snapshot within actor isolation
+        let usersSnapshot = Array(scheduledUsers)
+        let datesSnapshot = lastAnalysisDates
+        let hashesSnapshot = lastDataHashes
 
-        do {
-            let scheduledData = try encoder.encode(Array(scheduledUsers))
-            userDefaults.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
-        } catch {
-            persistenceErrors.append("scheduledUsers: \(error.localizedDescription)")
-        }
+        // Capture dependencies for use outside actor
+        let defaults = userDefaults
+        let log = logger
 
-        do {
-            let datesData = try encoder.encode(lastAnalysisDates)
-            userDefaults.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
-        } catch {
-            persistenceErrors.append("lastAnalysisDates: \(error.localizedDescription)")
-        }
+        // Perform encoding and persistence off the actor to avoid blocking
+        Task.detached(priority: .utility) {
+            let encoder = JSONEncoder()
+            var persistenceErrors: [String] = []
 
-        do {
-            let hashData = try encoder.encode(lastDataHashes)
-            userDefaults.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
-        } catch {
-            persistenceErrors.append("lastDataHashes: \(error.localizedDescription)")
-        }
+            do {
+                let scheduledData = try encoder.encode(usersSnapshot)
+                defaults.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
+            } catch {
+                persistenceErrors.append("scheduledUsers: \(error.localizedDescription)")
+            }
 
-        if !persistenceErrors.isEmpty {
-            logger.log(
-                "Failed to persist scheduler state: \(persistenceErrors.joined(separator: "; "))",
-                level: .error,
-                category: .personality
-            )
+            do {
+                let datesData = try encoder.encode(datesSnapshot)
+                defaults.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
+            } catch {
+                persistenceErrors.append("lastAnalysisDates: \(error.localizedDescription)")
+            }
+
+            do {
+                let hashData = try encoder.encode(hashesSnapshot)
+                defaults.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
+            } catch {
+                persistenceErrors.append("lastDataHashes: \(error.localizedDescription)")
+            }
+
+            if !persistenceErrors.isEmpty {
+                log.log(
+                    "Failed to persist scheduler state: \(persistenceErrors.joined(separator: "; "))",
+                    level: .error,
+                    category: .personality
+                )
+            }
         }
     }
 

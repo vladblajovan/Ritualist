@@ -3,6 +3,17 @@ import RitualistCore
 import FactoryKit
 import TipKit
 
+/// Consolidated state identifier for TodaysSummaryCard onChange optimization.
+/// Combines all values that should trigger habit list updates into a single Equatable type,
+/// avoiding multiple onChange handlers that would cause redundant recalculations.
+private struct SummaryStateId: Equatable {
+    let completedCount: Int
+    let totalHabits: Int
+    let incompleteCount: Int
+    let progressStateId: String
+    let viewingDate: Date
+}
+
 struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     // MARK: - Environment
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -91,6 +102,18 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             .filter { $0.kind == .numeric }
             .map { "\($0.id.uuidString)-\(getProgress($0))" }
             .joined(separator: "|")
+    }
+
+    /// Consolidated state trigger for onChange - combines all values that should trigger updates.
+    /// Using a struct avoids multiple onChange handlers causing redundant recalculations.
+    private var summaryStateId: SummaryStateId {
+        SummaryStateId(
+            completedCount: summary?.completedHabitsCount ?? 0,
+            totalHabits: summary?.totalHabits ?? 0,
+            incompleteCount: summary?.incompleteHabits.count ?? 0,
+            progressStateId: habitProgressStateId,
+            viewingDate: viewingDate
+        )
     }
 
     init(summary: TodaysSummary?,
@@ -247,16 +270,16 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Task { @MainActor in isPremiumUser = await subscriptionService.isPremiumUser() }
         }
         .onDisappear { cancelAllAnimationTasks() }
-        .onChange(of: summary?.completedHabitsCount) { _, _ in
+        // Consolidated onChange: triggers updates when any relevant summary state changes
+        // This avoids redundant recalculations from multiple separate onChange handlers
+        .onChange(of: summaryStateId) { oldValue, newValue in
             updateVisibleHabits()
             updateHabitProgressAnimations()
-            // Clear any stale long-press completion indicators when habits move between sections
-            recentlyCompletedViaLongPress.removeAll()
+            // Clear long-press indicators only when completed count changes (habits moved between sections)
+            if oldValue.completedCount != newValue.completedCount {
+                recentlyCompletedViaLongPress.removeAll()
+            }
         }
-        .onChange(of: summary?.totalHabits) { _, _ in updateVisibleHabits() }
-        .onChange(of: summary?.incompleteHabits.count) { _, _ in updateHabitProgressAnimations() }
-        .onChange(of: habitProgressStateId) { _, _ in updateHabitProgressAnimations() }
-        .onChange(of: viewingDate) { _, _ in updateVisibleHabits(); updateHabitProgressAnimations() }
     }
 
     // MARK: - Body Helper Views
