@@ -78,7 +78,7 @@ final class PersonalityPreferencesManager {
         guard let lastCheck = userDefaults.object(forKey: UserDefaultsKeys.personalityLastTriggerCheckDate) as? Date else {
             return true // Never checked before
         }
-        return Date().timeIntervalSince(lastCheck) >= AppConstants.personalityAnalysisTriggerDebounceInterval
+        return Date().timeIntervalSince(lastCheck) >= BusinessConstants.personalityAnalysisTriggerDebounceInterval
     }
 
     /// Records the current time as the last trigger check
