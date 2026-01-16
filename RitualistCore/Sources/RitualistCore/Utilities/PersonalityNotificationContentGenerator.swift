@@ -26,8 +26,9 @@ public struct PersonalityNotificationContentGenerator {
         content.title = title
         content.body = body
         content.sound = .default
-        content.badge = 1
-        
+        // Badge is managed by updateBadgeCount() on app activation, not set per-notification
+        // This prevents stale badges after app reinstall (iOS doesn't clear pending notifications)
+
         // Add deep link data
         content.userInfo = [
             "type": "personality_analysis",

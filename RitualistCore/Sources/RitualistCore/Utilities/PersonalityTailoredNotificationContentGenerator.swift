@@ -39,8 +39,8 @@ public struct PersonalityTailoredNotificationContentGenerator {
         content.title = title
         content.body = body
         content.sound = .default
-        content.badge = 1
-        
+        // Badge is managed by updateBadgeCount() on app activation, not set per-notification
+
         // Rich content for notification center persistence
         content.categoryIdentifier = "HABIT_REMINDER"
         content.threadIdentifier = "habit_reminders_\(habitID.uuidString)"

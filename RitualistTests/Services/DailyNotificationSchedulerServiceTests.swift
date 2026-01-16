@@ -245,18 +245,18 @@ struct DailyNotificationSchedulerServiceTests {
         // Execute
         try await service.rescheduleAllHabitNotifications()
 
-        // Verify: Badge numbers should be in chronological order
+        // Verify: Notifications should be scheduled
         let scheduledNotifications = await notificationService.getScheduledNotifications()
         #expect(scheduledNotifications.count == 3)
 
-        // Find notifications by name and check badge numbers
+        // Find notifications by name and verify they exist
         let earlyNotification = scheduledNotifications.first { $0.habitName == "Early Habit" }
         let middleNotification = scheduledNotifications.first { $0.habitName == "Middle Habit" }
         let lateNotification = scheduledNotifications.first { $0.habitName == "Late Habit" }
 
-        #expect(earlyNotification?.badgeNumber == 1)
-        #expect(middleNotification?.badgeNumber == 2)
-        #expect(lateNotification?.badgeNumber == 3)
+        #expect(earlyNotification != nil)
+        #expect(middleNotification != nil)
+        #expect(lateNotification != nil)
     }
 
     // MARK: - Error Handling Tests

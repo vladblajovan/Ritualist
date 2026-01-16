@@ -174,16 +174,11 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             }
 
             do {
-                // Badge number based on delivery order (1-indexed)
-                // Sorted by (hour, minute, secondOffset) to match actual iOS delivery order
-                let badgeNumber = scheduledCount + 1
-
                 try await notificationService.scheduleSingleNotification(
                     for: habit.id,
                     habitName: habit.name,
                     habitKind: habit.kind,
-                    time: time,
-                    badgeNumber: badgeNumber
+                    time: time
                 )
                 scheduledCount += 1
             } catch {

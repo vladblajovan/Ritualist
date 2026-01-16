@@ -24,7 +24,7 @@ public protocol NotificationService: Sendable {
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
     func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws
-    func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws
+    func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime) async throws
     func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws
     func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws
@@ -269,7 +269,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
         // Schedule without badge (used when not doing bulk scheduling with badge ordering)
         for time in times {
-            try await scheduleSingleNotification(for: habitID, habitName: habitName, habitKind: habitKind, time: time, badgeNumber: 0)
+            try await scheduleSingleNotification(for: habitID, habitName: habitName, habitKind: habitKind, time: time)
         }
 
         // Track notification scheduling
@@ -280,7 +280,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         ))
     }
 
-    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws {
+    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime) async throws {
         let center = UNUserNotificationCenter.current()
         // Notifications should use local timezone - users want reminders at "7 AM local time"
         let calendar = CalendarUtils.currentLocalCalendar
@@ -313,9 +313,8 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         }
 
         content.sound = .default
-        if badgeNumber > 0 {
-            content.badge = NSNumber(value: badgeNumber)
-        }
+        // Badge is managed by updateBadgeCount() on app activation, not set per-notification
+        // This prevents stale badges after app reinstall (iOS doesn't clear pending notifications)
 
         // Use different category based on habit type
         content.categoryIdentifier = habitKind == .binary ?
@@ -352,7 +351,6 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                 metadata: [
                     "habit": habitName,
                     "time": "\(time.hour):\(String(format: "%02d", time.minute))",
-                    "badge": badgeNumber,
                     "id": id
                 ]
             )
