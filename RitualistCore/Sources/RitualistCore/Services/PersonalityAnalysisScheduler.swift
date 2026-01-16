@@ -53,9 +53,25 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         self.errorHandler = errorHandler
         self.logger = logger
 
-        // Load state asynchronously - task is short-lived and completes on its own.
-        // For long-lived actors like this scheduler, orphan task risk is minimal.
-        Task { await self.loadSchedulerState() }
+        // Load persisted state synchronously during init to avoid race conditions.
+        // UserDefaults access is synchronous and fast, so this doesn't block significantly.
+        // This ensures state is fully loaded before any methods can be called.
+        let decoder = JSONDecoder()
+
+        if let scheduledData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
+           let scheduledArray = try? decoder.decode([UUID].self, from: scheduledData) {
+            self.scheduledUsers = Set(scheduledArray)
+        }
+
+        if let datesData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
+           let dates = try? decoder.decode([UUID: Date].self, from: datesData) {
+            self.lastAnalysisDates = dates
+        }
+
+        if let hashData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
+           let hashes = try? decoder.decode([UUID: String].self, from: hashData) {
+            self.lastDataHashes = hashes
+        }
     }
     
     // MARK: - Public Methods
@@ -360,22 +376,4 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         }
     }
 
-    private func loadSchedulerState() {
-        let decoder = JSONDecoder()
-
-        if let scheduledData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
-           let scheduledArray = try? decoder.decode([UUID].self, from: scheduledData) {
-            scheduledUsers = Set(scheduledArray)
-        }
-
-        if let datesData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
-           let dates = try? decoder.decode([UUID: Date].self, from: datesData) {
-            lastAnalysisDates = dates
-        }
-
-        if let hashData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
-           let hashes = try? decoder.decode([UUID: String].self, from: hashData) {
-            lastDataHashes = hashes
-        }
-    }
 }

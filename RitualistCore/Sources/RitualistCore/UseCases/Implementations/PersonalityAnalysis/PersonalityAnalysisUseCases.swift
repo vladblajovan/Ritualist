@@ -3,19 +3,22 @@ import Foundation
 // MARK: - Personality Analysis Use Case Implementations
 
 public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
-    
+
     private let personalityService: PersonalityAnalysisService
     private let thresholdValidator: DataThresholdValidator
     private let repository: PersonalityAnalysisRepositoryProtocol
-    
+    private let timezoneService: TimezoneService
+
     public init(
         personalityService: PersonalityAnalysisService,
         thresholdValidator: DataThresholdValidator,
-        repository: PersonalityAnalysisRepositoryProtocol
+        repository: PersonalityAnalysisRepositoryProtocol,
+        timezoneService: TimezoneService
     ) {
         self.personalityService = personalityService
         self.thresholdValidator = thresholdValidator
         self.repository = repository
+        self.timezoneService = timezoneService
     }
     
     public func execute(for userId: UUID) async throws -> PersonalityProfile {
@@ -27,10 +30,14 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         
         // Business workflow: Get input data for analysis
         let input = try await repository.getHabitAnalysisInput(for: userId)
-        
+
+        // Get user's display timezone to ensure consistent date calculations
+        // This respects user preferences and handles travel scenarios correctly
+        let displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
         // Get enhanced completion statistics with schedule-aware calculations
         let endDate = Date()
-        let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: .current)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: displayTimezone)
         let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
         
         // Calculate personality scores using Service as utility - PASS completionStats!

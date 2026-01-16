@@ -9,12 +9,13 @@ extension Container {
     // MARK: - Personality Analysis Use Cases
     
     var analyzePersonalityUseCase: Factory<AnalyzePersonalityUseCase> {
-        self { 
+        self {
             DefaultAnalyzePersonalityUseCase(
                 personalityService: self.personalityAnalysisService(),
                 thresholdValidator: self.dataThresholdValidator(),
-                repository: self.personalityAnalysisRepository()
-            ) 
+                repository: self.personalityAnalysisRepository(),
+                timezoneService: self.timezoneService()
+            )
         }
     }
     
