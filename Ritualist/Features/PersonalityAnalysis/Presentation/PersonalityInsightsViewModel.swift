@@ -137,15 +137,31 @@ public final class PersonalityInsightsViewModel {
                 await preferencesManager.triggerAnalysis(for: userId)
                 logger.log("Analysis trigger completed, checking for generated profile", level: .debug, category: .personality)
 
-                // Reload the generated profile
-                if let generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId) {
-                    viewState = .ready(profile: generatedProfile)
+                // Retry fetching profile with small delays to handle potential async save timing
+                // Analysis saves synchronously, but SwiftData might need time to flush to disk
+                let maxRetries = 3
+                let retryDelayMs: UInt64 = 500_000_000 // 0.5 seconds
+
+                var generatedProfile: PersonalityProfile?
+                for attempt in 1...maxRetries {
+                    generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId)
+                    if generatedProfile != nil {
+                        break
+                    }
+                    if attempt < maxRetries {
+                        logger.log("Profile not found on attempt \(attempt), retrying...", level: .debug, category: .personality)
+                        try await Task.sleep(nanoseconds: retryDelayMs)
+                    }
+                }
+
+                if let profile = generatedProfile {
+                    viewState = .ready(profile: profile)
                 } else {
-                    // User met eligibility but profile generation failed silently.
+                    // User met eligibility but profile generation failed after retries.
                     // This indicates an unexpected internal error (scheduler/repository issue).
                     // Generic message is intentional: user can't act on internal details,
                     // retry is the only actionable advice. Detailed logging captures context for debugging.
-                    logger.log("Analysis triggered for eligible user but profile not created - possible scheduler/repository issue", level: .error, category: .personality)
+                    logger.log("Analysis triggered for eligible user but profile not created after \(maxRetries) attempts - possible scheduler/repository issue", level: .error, category: .personality)
                     viewState = .error(.unknownError("Unable to generate your personality analysis. Please try again."))
                 }
             } else {

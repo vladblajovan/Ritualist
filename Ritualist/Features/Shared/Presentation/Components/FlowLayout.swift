@@ -69,6 +69,8 @@ struct FlowLayout: Layout {
         return CGSize(width: containerWidth, height: max(totalHeight, 1))
     }
 
+    // Note: `proposal` parameter is required by the Layout protocol but unused here.
+    // We use `bounds` for placement constraints and cached sizes for subview dimensions.
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) {
         var currentX: CGFloat = bounds.minX
         var currentY: CGFloat = bounds.minY

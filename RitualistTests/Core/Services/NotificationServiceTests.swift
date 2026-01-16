@@ -527,15 +527,18 @@ struct NotificationContentCommonPropertiesTests {
         #expect(content.sound == .default)
     }
 
-    @Test("Habit reminder content has badge of 1")
-    func habitReminderContent_hasBadgeOfOne() {
+    @Test("Habit reminder content has no badge (prevents stale badges after reinstall)")
+    func habitReminderContent_hasNoBadge() {
         let content = HabitReminderNotificationContentGenerator.generateContent(
             for: UUID(),
             habitName: "Test",
             reminderTime: ReminderTime(hour: 10, minute: 0)
         )
 
-        #expect(content.badge == 1)
+        // Badge is intentionally nil - iOS doesn't clear pending notifications on uninstall,
+        // so badges set by notifications would appear after reinstall. Badge count is now
+        // managed via updateBadgeCount() when app becomes active.
+        #expect(content.badge == nil)
     }
 
     @Test("Habit reminder content has relevance score of 1.0")

@@ -28,8 +28,6 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     private var lastDataHashes: [UUID: String] = [:]
     /// Tracks users with in-flight analysis to prevent duplicate concurrent triggers
     private var analysisInProgress: Set<UUID> = []
-    /// Task reference for initial state loading to enable proper lifecycle management
-    private var loadStateTask: Task<Void, Never>?
     
     // MARK: - Constants
     
@@ -55,12 +53,9 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         self.errorHandler = errorHandler
         self.logger = logger
 
-        // Store task reference to prevent potential memory leak from orphaned task
-        loadStateTask = Task { await self.loadSchedulerState() }
-    }
-
-    deinit {
-        loadStateTask?.cancel()
+        // Load state asynchronously - task is short-lived and completes on its own.
+        // For long-lived actors like this scheduler, orphan task risk is minimal.
+        Task { await self.loadSchedulerState() }
     }
     
     // MARK: - Public Methods

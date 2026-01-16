@@ -111,10 +111,15 @@ struct WeekDateSelector: View {
             currentWeekIndex = weekIndexForDate(selectedDate)
         }
         .onChange(of: selectedDate) { _, newDate in
-            // Regenerate weeks if we've scrolled far from center
+            // Regenerate weeks when approaching edges to enable infinite scrolling.
+            // Performance note: Regeneration creates 9 weeks (63 Date objects, ~5KB).
+            // After regeneration, the view re-centers at index 4, requiring 3+ weeks
+            // of swiping before the next regeneration. This provides smooth infinite
+            // scrolling with minimal memory and CPU overhead. Date creation is fast
+            // enough that no debouncing is needed for typical swipe speeds.
             let newIndex = weekIndexForDate(newDate)
             if newIndex != currentWeekIndex {
-                // Check if we need to regenerate (approaching edges)
+                // Check if we need to regenerate (within 2 weeks of either edge)
                 if newIndex <= 1 || newIndex >= weeks.count - 2 {
                     weeks = generateWeeks()
                     // Recalculate index after regeneration to avoid mismatch
@@ -456,7 +461,7 @@ struct WeekDateSelector: View {
 
         // Past date selected (shows Return to Today + completion colors)
         WeekDateSelector(
-            selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date())!,
+            selectedDate: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date(),
             timezone: .current,
             canGoToPrevious: true,
             canGoToNext: true,

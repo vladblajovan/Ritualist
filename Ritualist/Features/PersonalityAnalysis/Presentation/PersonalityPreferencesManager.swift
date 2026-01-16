@@ -50,9 +50,10 @@ final class PersonalityPreferencesManager {
                     // Trigger automatic analysis check if frequency-based (not manual)
                     // Only trigger if not recently checked (debounce rapid app restarts)
                     if loaded.analysisFrequency != .manual && shouldTriggerAnalysisCheck() {
-                        // Record BEFORE triggering to ensure debounce works even if trigger
-                        // fails or takes a long time - prevents repeated trigger attempts
-                        recordTriggerCheck()
+                        // Record AFTER trigger completes - defer ensures this runs after await
+                        // regardless of success/failure, preventing rapid retries while allowing
+                        // the full debounce period before next attempt
+                        defer { recordTriggerCheck() }
                         await triggerAnalysisCheckUseCase.execute(for: userId)
                     }
                 }
@@ -63,8 +64,7 @@ final class PersonalityPreferencesManager {
             await startAnalysisSchedulingUseCase.execute(for: userId)
             // Trigger automatic analysis check for new users with default frequency
             if defaults.analysisFrequency != .manual && shouldTriggerAnalysisCheck() {
-                // Record BEFORE triggering to ensure debounce works even if trigger fails
-                recordTriggerCheck()
+                defer { recordTriggerCheck() }
                 await triggerAnalysisCheckUseCase.execute(for: userId)
             }
             return defaults

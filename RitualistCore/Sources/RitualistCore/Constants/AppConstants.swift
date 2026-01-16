@@ -29,22 +29,29 @@ public enum UserDefaultsKeys {
     public static let lastSchemaVersion = "com.ritualist.lastSchemaVersion"
 
     // MARK: - Personality Analysis
+    // Note: These keys store internal scheduler state. Missing keys default to empty/nil,
+    // which safely triggers fresh state initialization. No migration needed for these keys.
 
-    /// Key for storing scheduled user IDs for personality analysis
+    /// Key for storing scheduled user IDs for personality analysis.
+    /// Type: Data (JSON-encoded [UUID] array)
     public static let personalitySchedulerUsers = "com.ritualist.personalitySchedulerUsers"
 
-    /// Key for storing scheduled dates for personality analysis
+    /// Key for storing scheduled dates for personality analysis.
+    /// Type: Data (JSON-encoded [UUID: Date] dictionary)
     public static let personalitySchedulerDates = "com.ritualist.personalitySchedulerDates"
 
-    /// Key for storing data hashes for personality analysis change detection
+    /// Key for storing data hashes for personality analysis change detection.
+    /// Type: Data (JSON-encoded [UUID: String] dictionary)
     public static let personalitySchedulerHashes = "com.ritualist.personalitySchedulerHashes"
 
-    /// Key for storing the last analysis date the user has seen
-    /// Used to show "New Analysis" indicator when analysis is newer than last seen
+    /// Key for storing the last analysis date the user has seen.
+    /// Used to show "New Analysis" indicator when analysis is newer than last seen.
+    /// Type: Date (nil means user hasn't dismissed any analysis banner yet)
     public static let personalityLastSeenAnalysisDate = "com.ritualist.personalityLastSeenAnalysisDate"
 
-    /// Key for storing the last time analysis trigger check was performed
-    /// Used to debounce app launch triggers and avoid redundant checks
+    /// Key for storing the last time analysis trigger check was performed.
+    /// Used to debounce app launch triggers and avoid redundant checks.
+    /// Type: Date (nil means never checked, will trigger on next app launch)
     public static let personalityLastTriggerCheckDate = "com.ritualist.personalityLastTriggerCheckDate"
 
     // MARK: - Inspiration/Motivation
@@ -99,17 +106,23 @@ public enum UserDefaultsKeys {
     public static let allFeaturesEnabledCache = "com.ritualist.allFeaturesEnabled"
 
     // MARK: - Habit Icon Visibility (Today Summary)
+    // Note: All boolean keys default to true via @AppStorage when missing.
+    // No migration needed - missing keys show all icons (safe default).
 
-    /// Key for showing/hiding time reminder bell icon
+    /// Key for showing/hiding time reminder bell icon.
+    /// Type: Bool (default: true via @AppStorage)
     public static let showTimeReminderIcon = "com.ritualist.habitIcons.showTimeReminder"
 
-    /// Key for showing/hiding location reminder icon
+    /// Key for showing/hiding location reminder icon.
+    /// Type: Bool (default: true via @AppStorage)
     public static let showLocationIcon = "com.ritualist.habitIcons.showLocation"
 
-    /// Key for showing/hiding schedule indicator icon
+    /// Key for showing/hiding schedule indicator icon.
+    /// Type: Bool (default: true via @AppStorage)
     public static let showScheduleIcon = "com.ritualist.habitIcons.showSchedule"
 
-    /// Key for showing/hiding streak at risk fire icon
+    /// Key for showing/hiding streak at risk fire icon.
+    /// Type: Bool (default: true via @AppStorage)
     public static let showStreakAtRiskIcon = "com.ritualist.habitIcons.showStreakAtRisk"
 
     // MARK: - Notifications
