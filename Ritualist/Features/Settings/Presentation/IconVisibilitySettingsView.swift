@@ -32,6 +32,9 @@ struct IconVisibilitySettingsView: View {
                             .font(.system(size: 18))
                     }
                 }
+                .onChange(of: showStreakAtRiskIcon) { _, _ in
+                    HapticFeedbackService.shared.trigger(.light)
+                }
 
                 Toggle(isOn: $showTimeReminderIcon) {
                     Label {
@@ -45,6 +48,9 @@ struct IconVisibilitySettingsView: View {
                         Image(systemName: "bell.fill")
                             .foregroundColor(.orange)
                     }
+                }
+                .onChange(of: showTimeReminderIcon) { _, _ in
+                    HapticFeedbackService.shared.trigger(.light)
                 }
 
                 Toggle(isOn: $showLocationIcon) {
@@ -60,6 +66,9 @@ struct IconVisibilitySettingsView: View {
                             .foregroundColor(.purple)
                     }
                 }
+                .onChange(of: showLocationIcon) { _, _ in
+                    HapticFeedbackService.shared.trigger(.light)
+                }
 
                 Toggle(isOn: $showScheduleIcon) {
                     Label {
@@ -73,6 +82,9 @@ struct IconVisibilitySettingsView: View {
                         Image(systemName: "calendar.badge.clock")
                             .foregroundColor(.blue)
                     }
+                }
+                .onChange(of: showScheduleIcon) { _, _ in
+                    HapticFeedbackService.shared.trigger(.light)
                 }
             } footer: {
                 Text(Strings.Settings.iconVisibilityFooter)
