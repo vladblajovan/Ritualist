@@ -15,8 +15,8 @@ public struct CelebrationAnimationConfig: Sendable {
     public let confettiCount: Int
     public let confettiColors: [Color]
     public let hapticFeedback: Bool
-    public let hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle
-    
+    public let hapticType: HapticFeedbackType
+
     public init(
         duration: Double = 2.0,
         scaleEffect: Double = 1.15,
@@ -25,7 +25,7 @@ public struct CelebrationAnimationConfig: Sendable {
         confettiCount: Int = 8,
         confettiColors: [Color] = [.yellow, .orange, .red, .pink, .purple, .blue, .green],
         hapticFeedback: Bool = true,
-        hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle = .heavy
+        hapticType: HapticFeedbackType = .heavy
     ) {
         self.duration = duration
         self.scaleEffect = scaleEffect
@@ -34,7 +34,7 @@ public struct CelebrationAnimationConfig: Sendable {
         self.confettiCount = confettiCount
         self.confettiColors = confettiColors
         self.hapticFeedback = hapticFeedback
-        self.hapticStyle = hapticStyle
+        self.hapticType = hapticType
     }
     
     // Preset configurations for different contexts
@@ -45,7 +45,7 @@ public struct CelebrationAnimationConfig: Sendable {
         scaleEffect: 1.2,
         glowColor: .blue,
         confettiColors: [.blue, .cyan, .indigo, .purple],
-        hapticStyle: .medium
+        hapticType: .medium
     )
     
     public static let achievement = CelebrationAnimationConfig(
@@ -61,9 +61,8 @@ public struct CelebrationAnimationConfig: Sendable {
         scaleEffect: 1.25,
         glowColor: .purple,
         confettiCount: 15,
-        
         confettiColors: [.purple, .pink, .red, .orange, .yellow],
-        hapticStyle: .heavy
+        hapticType: .heavy
     )
     
     public static let subtle = CelebrationAnimationConfig(

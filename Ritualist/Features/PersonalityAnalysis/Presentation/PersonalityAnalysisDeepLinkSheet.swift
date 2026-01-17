@@ -61,10 +61,7 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
             }
 
             // Haptic feedback when banner appears
-            #if canImport(UIKit)
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            #endif
+            HapticFeedbackService.shared.trigger(.success)
         }
     }
     

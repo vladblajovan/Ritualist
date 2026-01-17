@@ -29,7 +29,7 @@ public struct HabitsAssistantView: View {
     @State private var searchText = ""
 
     /// Preserves category selection when searching, restores when search is cleared
-    @State private var categoryBeforeSearch: SuggestionCategory?
+    @State private var categoryBeforeSearch: HabitCategory?
 
     /// Filtered suggestions based on search text and selected category
     private var filteredSuggestions: [HabitSuggestion] {

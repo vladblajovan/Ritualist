@@ -70,10 +70,9 @@ public struct CelebrationAnimationModifier: ViewModifier {
 
         isAnimating = true
 
-        // Haptic feedback (always provide tactile feedback regardless of motion setting)
+        // Haptic feedback (respects global haptic setting)
         if config.hapticFeedback {
-            let impactFeedback = UIImpactFeedbackGenerator(style: config.hapticStyle)
-            impactFeedback.impactOccurred()
+            HapticFeedbackService.shared.trigger(config.hapticType)
         }
 
         // Skip visual animations if user prefers reduced motion

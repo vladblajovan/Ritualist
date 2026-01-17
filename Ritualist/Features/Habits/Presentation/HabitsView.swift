@@ -702,8 +702,7 @@ private struct DraggableFloatingButton: View {
                         let constrainedHeight = min(max(newHeight, maxUpwardOffset), maxDownwardOffset)
 
                         // Haptic feedback on snap
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                        HapticFeedbackService.shared.trigger(.light)
 
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             dragOffset = CGSize(
