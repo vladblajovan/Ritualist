@@ -100,21 +100,25 @@ public struct HabitsAssistantView: View {
 
                 // Habit suggestions
                 if filteredSuggestions.isEmpty && !searchText.isEmpty {
-                    // Empty search results
-                    VStack(spacing: Spacing.medium) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary)
-                        Text(Strings.HabitsAssistant.noSearchResults)
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        Text(Strings.HabitsAssistant.tryDifferentKeywords)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
+                    // Empty search results - centered in available space
+                    GeometryReader { geometry in
+                        VStack(spacing: Spacing.medium) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text(Strings.HabitsAssistant.noSearchResults)
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Text(Strings.HabitsAssistant.tryDifferentKeywords)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: geometry.size.height)
+                        .padding(.horizontal, Spacing.xlarge)
                     }
-                    .padding(.top, Spacing.xxxlarge)
-                    .padding(.horizontal, Spacing.xlarge)
+                    .frame(minHeight: 300)
                 } else {
                     LazyVStack(spacing: Spacing.medium) {
                         ForEach(filteredSuggestions) { suggestion in

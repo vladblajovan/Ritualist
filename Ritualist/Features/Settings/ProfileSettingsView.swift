@@ -9,7 +9,7 @@
 import SwiftUI
 import RitualistCore
 
-struct PersonalizationSettingsView: View {
+struct ProfileSettingsView: View {
     @Bindable var vm: SettingsViewModel
     @Binding var gender: UserGender
     @Binding var ageGroup: UserAgeGroup

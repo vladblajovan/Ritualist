@@ -64,7 +64,7 @@ struct AccountSectionView: View {
 
             // Personalization row - show subtitle hint when demographics are missing
             NavigationLink {
-                PersonalizationSettingsView(
+                ProfileSettingsView(
                     vm: vm,
                     gender: $gender,
                     ageGroup: $ageGroup

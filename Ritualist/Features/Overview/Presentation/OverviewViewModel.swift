@@ -366,6 +366,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             self.overviewData = overviewData
             self.hasLoadedInitialData = true
             self.hasEverLoadedData = true
+
             self.todaysSummary = extractTodaysSummary(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)

@@ -1077,7 +1077,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 showingDeleteAlert = true
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: 14))
                     .foregroundColor(.gray.opacity(0.8))
                     .padding(.leading, 8)
                     .contentShape(Rectangle())

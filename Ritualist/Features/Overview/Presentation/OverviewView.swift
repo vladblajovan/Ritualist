@@ -20,7 +20,24 @@ public struct OverviewView: View {
             stickyBrandHeader
             scrollContent
         }
-        .background(Color(.systemGroupedBackground))
+        .background {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        AppColors.brand.opacity(0.25),
+                        AppColors.brand.opacity(0.12),
+                        AppColors.accentCyan.opacity(0.06),
+                        Color(.systemGroupedBackground)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+
+                Color(.systemGroupedBackground).opacity(0.03)
+            }
+            .ignoresSafeArea()
+        }
     }
     
     // MARK: - Scroll Content
@@ -282,9 +299,7 @@ public struct OverviewView: View {
             progressDisplayStyle: .circular,
             showAvatarTip: true
         )
-        .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium + (horizontalSizeClass == .regular ? 10 : 0))
-        .background(Color(.systemGroupedBackground))
         .zIndex(1)
     }
     

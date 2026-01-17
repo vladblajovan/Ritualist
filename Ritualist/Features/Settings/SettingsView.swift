@@ -87,6 +87,7 @@ private struct SettingsFormView: View {
     @State private var displayTimezoneMode = "original"
     @State private var gender: UserGender = .preferNotToSay
     @State private var ageGroup: UserAgeGroup = .preferNotToSay
+    @State private var showBuildNumber = false
 
     // Version information
     private var appVersion: String {
@@ -277,12 +278,18 @@ private struct SettingsFormView: View {
 
                     // About Section
                     Section(Strings.Settings.sectionAbout) {
-                        // Version (always visible)
+                        // Version (tap to toggle build number)
                         HStack {
-                            Text(Strings.Settings.version)
+                            Text(showBuildNumber ? Strings.Settings.build : Strings.Settings.version)
                             Spacer()
-                            Text(appVersion)
+                            Text(showBuildNumber ? buildNumber : appVersion)
                                 .foregroundColor(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showBuildNumber.toggle()
+                            }
                         }
 
                         #if DEBUG

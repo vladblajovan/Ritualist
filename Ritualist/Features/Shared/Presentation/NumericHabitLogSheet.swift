@@ -22,6 +22,7 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
     @State private var value: Double = 0.0
     @State private var extraMileText: String?
     @State private var loadTask: Task<Void, Never>?
+    @State private var showCelebration = false
     @Environment(\.dismiss) private var dismiss
 
     private var isIPad: Bool {
@@ -156,6 +157,12 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
+                        }
+                        .celebrationAnimation(
+                            isTriggered: showCelebration,
+                            config: .achievement
+                        ) {
+                            showCelebration = false
                         }
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(
@@ -329,8 +336,9 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
                 extraMileText = Strings.NumericHabitLog.extraMilePhrases.randomElement()
             }
 
-            // Trigger tip for completed habits when reaching target for the first time
+            // Trigger celebration and tip when reaching target for the first time
             if newValue >= dailyTarget && oldValue < dailyTarget {
+                showCelebration = true
                 TapCompletedHabitTip.firstHabitCompleted.sendDonation()
                 logger.log("Numeric habit completed - donated firstHabitCompleted event", level: .debug, category: .ui)
             }
