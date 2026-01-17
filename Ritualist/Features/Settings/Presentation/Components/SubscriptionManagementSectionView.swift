@@ -39,8 +39,8 @@ struct SubscriptionManagementSectionView: View {
             Label {
                 Text(vm.isOnTrial ? Strings.Subscription.trial : vm.subscriptionPlan.displayName)
             } icon: {
-                Image(systemName: subscriptionIcon)
-                    .foregroundStyle(subscriptionIconStyle)
+                Image(systemName: subscriptionIconConfig.name)
+                    .foregroundStyle(subscriptionIconConfig.style)
             }
             #endif
 
@@ -128,21 +128,12 @@ struct SubscriptionManagementSectionView: View {
 
     // MARK: - Subscription Icon
 
-    private var subscriptionIcon: String {
+    private var subscriptionIconConfig: (name: String, style: AnyShapeStyle) {
         switch vm.subscriptionPlan {
         case .free:
-            return "person.fill"
+            return ("person.fill", AnyShapeStyle(Color.secondary))
         case .weekly, .monthly, .annual:
-            return "crown.fill"
-        }
-    }
-
-    private var subscriptionIconStyle: AnyShapeStyle {
-        switch vm.subscriptionPlan {
-        case .free:
-            return AnyShapeStyle(Color.secondary)
-        case .weekly, .monthly, .annual:
-            return AnyShapeStyle(GradientTokens.premiumCrown)
+            return ("crown.fill", AnyShapeStyle(GradientTokens.premiumCrown))
         }
     }
 

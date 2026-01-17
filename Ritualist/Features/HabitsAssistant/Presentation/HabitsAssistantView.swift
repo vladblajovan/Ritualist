@@ -28,6 +28,9 @@ public struct HabitsAssistantView: View {
     /// Search text for filtering habit suggestions
     @State private var searchText = ""
 
+    /// Preserves category selection when searching, restores when search is cleared
+    @State private var categoryBeforeSearch: SuggestionCategory?
+
     /// Filtered suggestions based on search text and selected category
     private var filteredSuggestions: [HabitSuggestion] {
         let suggestions = vm.getSuggestions()
@@ -151,9 +154,13 @@ public struct HabitsAssistantView: View {
         .background(Color(.systemGroupedBackground))
         .searchable(text: $searchText, prompt: Strings.HabitsAssistant.searchPlaceholder)
         .onChange(of: searchText) { _, newValue in
-            // Clear category selection when searching to show all results
+            // Preserve category when searching, restore when search is cleared
             if !newValue.isEmpty && vm.selectedCategory != nil {
+                categoryBeforeSearch = vm.selectedCategory
                 vm.selectedCategory = nil
+            } else if newValue.isEmpty && categoryBeforeSearch != nil {
+                vm.selectedCategory = categoryBeforeSearch
+                categoryBeforeSearch = nil
             }
         }
         .task {

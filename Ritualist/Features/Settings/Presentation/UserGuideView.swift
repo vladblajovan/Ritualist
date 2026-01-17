@@ -81,11 +81,13 @@ private struct GuideItemRow: View {
             }
         }
         .onChange(of: searchText) { _, newValue in
-            // Auto-expand items that match search
+            // Auto-expand items that match search, collapse when search is cleared
             if !newValue.isEmpty &&
                (item.title.localizedCaseInsensitiveContains(newValue) ||
                 item.content.localizedCaseInsensitiveContains(newValue)) {
                 isExpanded = true
+            } else if newValue.isEmpty {
+                isExpanded = false
             }
         }
     }

@@ -14,6 +14,7 @@ struct AppearanceSettingsView: View {
 
     // Local form state for appearance
     @State private var appearance = 0
+    @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         Form {
@@ -26,8 +27,9 @@ struct AppearanceSettingsView: View {
                 .pickerStyle(.inline)
                 .labelsHidden()
                 .onChange(of: appearance) { _, newValue in
-                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-                    Task { @MainActor in
+                    // Cancel previous save to prevent race conditions on rapid changes
+                    saveTask?.cancel()
+                    saveTask = Task { @MainActor in
                         vm.profile.appearance = newValue
                         _ = await vm.save()
                         await vm.updateAppearance(newValue)
