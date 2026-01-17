@@ -144,7 +144,7 @@ struct ToastView: View {
         hasDismissed = true
 
         // Haptic feedback for tactile confirmation of dismiss action
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        HapticFeedbackService.shared.trigger(.light)
 
         // Cancel auto-dismiss timer if still running
         dismissTask?.cancel()

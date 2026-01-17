@@ -129,7 +129,24 @@ public struct StatsView: View {
                 }
             }
         } // VStack
-        .background(Color(.systemGroupedBackground))
+        .background {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        AppColors.brand.opacity(0.25),
+                        AppColors.brand.opacity(0.12),
+                        AppColors.accentCyan.opacity(0.06),
+                        Color(.systemGroupedBackground)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+
+                Color(.systemGroupedBackground).opacity(0.03)
+            }
+            .ignoresSafeArea()
+        }
         .navigationBarHidden(true)
         .sheet(isPresented: $showingProgressTrendInfo) {
             ChartInfoSheet(
@@ -167,9 +184,7 @@ public struct StatsView: View {
             completionPercentage: vm.weeklyPatterns?.averageWeeklyCompletion,
             progressDisplayStyle: .circular
         )
-        .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium)
-        .background(Color(.systemGroupedBackground))
         .zIndex(1) // Ensure header and fade render above scroll content
     }
 
@@ -265,6 +280,7 @@ public struct StatsView: View {
                 .foregroundStyle(GradientTokens.chartAreaFill)
                 .interpolationMethod(.catmullRom)
         }
+        .chartYScale(domain: 0...1)
         .frame(minHeight: 200)
         .chartYAxis {
             AxisMarks { value in

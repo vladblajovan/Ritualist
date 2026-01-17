@@ -137,36 +137,15 @@ public final class PersonalityInsightsViewModel {
                 await preferencesManager.triggerAnalysis(for: userId)
                 logger.log("Analysis trigger completed, checking for generated profile", level: .debug, category: .personality)
 
-                // Retry fetching profile with exponential backoff to handle SwiftData persistence timing
-                // Delays: 500ms, 750ms, 1s, 1.5s = total ~3.75s max wait
-                // This handles slow persistence under heavy load while keeping typical case fast
-                let maxRetries = 5
-                let baseDelayNs: UInt64 = 500_000_000 // 0.5 seconds base
-
-                var generatedProfile: PersonalityProfile?
-                for attempt in 1...maxRetries {
-                    generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId)
-                    if generatedProfile != nil {
-                        logger.log("Profile found on attempt \(attempt)", level: .debug, category: .personality)
-                        break
-                    }
-                    if attempt < maxRetries {
-                        // Exponential backoff: 500ms, 750ms, 1000ms, 1500ms
-                        let delayMultiplier = UInt64(pow(1.5, Double(attempt - 1)))
-                        let delay = baseDelayNs * delayMultiplier
-                        logger.log("Profile not found on attempt \(attempt), retrying in \(delay / 1_000_000)ms...", level: .debug, category: .personality)
-                        try await Task.sleep(nanoseconds: delay)
-                    }
-                }
-
-                if let profile = generatedProfile {
+                // Fetch profile with retry logic to handle SwiftData persistence timing
+                if let profile = try await fetchProfileWithRetry(for: userId) {
                     viewState = .ready(profile: profile)
                 } else {
                     // User met eligibility but profile generation failed after retries.
                     // This indicates an unexpected internal error (scheduler/repository issue).
                     // Generic message is intentional: user can't act on internal details,
                     // retry is the only actionable advice. Detailed logging captures context for debugging.
-                    logger.log("Analysis triggered for eligible user but profile not created after \(maxRetries) attempts - possible scheduler/repository issue", level: .error, category: .personality)
+                    logger.log("Analysis triggered for eligible user but profile not created - possible scheduler/repository issue", level: .error, category: .personality)
                     viewState = .error(.unknownError("Unable to generate your personality analysis. Please try again."))
                 }
             } else {
@@ -407,5 +386,32 @@ public final class PersonalityInsightsViewModel {
         } catch {
             return nil
         }
+    }
+
+    /// Fetches the personality profile with exponential backoff retry logic.
+    /// This handles slow SwiftData persistence under heavy load.
+    /// - Parameter userId: The user's UUID
+    /// - Returns: The personality profile if found within retry attempts, nil otherwise
+    private func fetchProfileWithRetry(for userId: UUID) async throws -> PersonalityProfile? {
+        let maxRetries = 5
+        let baseDelayNs: UInt64 = 500_000_000 // 0.5 seconds base
+
+        for attempt in 1...maxRetries {
+            let profile = try await getPersonalityProfileUseCase.execute(for: userId)
+            if profile != nil {
+                logger.log("Profile found on attempt \(attempt)", level: .debug, category: .personality)
+                return profile
+            }
+            if attempt < maxRetries {
+                // Exponential backoff: 500ms, 750ms, 1000ms, 1500ms
+                let delayMultiplier = UInt64(pow(1.5, Double(attempt - 1)))
+                let delay = baseDelayNs * delayMultiplier
+                logger.log("Profile not found on attempt \(attempt), retrying in \(delay / 1_000_000)ms...", level: .debug, category: .personality)
+                try await Task.sleep(nanoseconds: delay)
+            }
+        }
+
+        logger.log("Profile not found after \(maxRetries) attempts", level: .warning, category: .personality)
+        return nil
     }
 }

@@ -237,9 +237,7 @@ private struct HabitsListView: View {
             progressDisplayStyle: .circular,
             actions: headerActions
         )
-        .padding(.horizontal, Spacing.large)
         .padding(.top, Spacing.medium)
-        .background(Color(.systemGroupedBackground))
         .zIndex(1)
     }
 
@@ -389,6 +387,24 @@ private struct HabitsListView: View {
                     }
                 }
             }
+        }
+        .background {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        AppColors.brand.opacity(0.25),
+                        AppColors.brand.opacity(0.12),
+                        AppColors.accentCyan.opacity(0.06),
+                        Color(.systemGroupedBackground)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+
+                Color(.systemGroupedBackground).opacity(0.03)
+            }
+            .ignoresSafeArea()
         }
         .overlay(alignment: .bottom) {
             if vm.isCreating || vm.isUpdating || vm.isDeleting {
@@ -702,8 +718,7 @@ private struct DraggableFloatingButton: View {
                         let constrainedHeight = min(max(newHeight, maxUpwardOffset), maxDownwardOffset)
 
                         // Haptic feedback on snap
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                        HapticFeedbackService.shared.trigger(.light)
 
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             dragOffset = CGSize(

@@ -128,8 +128,11 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     // MARK: - Child ViewModel Accessors (Convenience)
 
     /// Whether to show the inspiration card (delegates to child VM)
+    /// Note: Guards on isViewingToday to prevent showing on past/future dates
+    /// even before the async configureChildViewModels() Task completes
     public var shouldShowInspirationCard: Bool {
-        inspirationVM.shouldShowInspirationCard
+        guard isViewingToday else { return false }
+        return inspirationVM.shouldShowInspirationCard
     }
 
     /// Inspiration items for carousel (delegates to child VM)
@@ -363,6 +366,7 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             self.overviewData = overviewData
             self.hasLoadedInitialData = true
             self.hasEverLoadedData = true
+
             self.todaysSummary = extractTodaysSummary(from: overviewData)
             self.activeStreaks = extractActiveStreaks(from: overviewData)
             self.monthlyCompletionData = extractMonthlyData(from: overviewData)

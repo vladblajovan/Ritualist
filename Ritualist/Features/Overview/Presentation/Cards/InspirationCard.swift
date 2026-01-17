@@ -8,6 +8,7 @@ struct InspirationCard: View {
     let completionPercentage: Double
     let shouldShow: Bool
     let onDismiss: () -> Void
+    let onDismissAll: () -> Void
 
     // Dynamic Type support for icon frame
     @ScaledMetric(relativeTo: .title2) private var iconFrameSize: CGFloat = 32
@@ -16,13 +17,22 @@ struct InspirationCard: View {
     // This eliminates repeated gradient creation and branching logic evaluation
     @State private var cachedStyle: InspirationStyleViewLogic.Style?
 
-    init(message: String, slogan: String, timeOfDay: TimeOfDay, completionPercentage: Double = 0.0, shouldShow: Bool = true, onDismiss: @escaping () -> Void) {
+    init(
+        message: String,
+        slogan: String,
+        timeOfDay: TimeOfDay,
+        completionPercentage: Double = 0.0,
+        shouldShow: Bool = true,
+        onDismiss: @escaping () -> Void,
+        onDismissAll: @escaping () -> Void = {}
+    ) {
         self.message = message
         self.slogan = slogan
         self.timeOfDay = timeOfDay
         self.completionPercentage = completionPercentage
         self.shouldShow = shouldShow
         self.onDismiss = onDismiss
+        self.onDismissAll = onDismissAll
     }
 
     // MARK: - Style Computation
@@ -51,60 +61,68 @@ struct InspirationCard: View {
             // Use cached style - single access, no recomputation
             let style = cachedStyle ?? defaultStyle
 
-            ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    // Header with icon and title
-                    HStack(alignment: .center, spacing: 12) {
-                        // Time-based icon with scaled frame for Dynamic Type
-                        Image(systemName: style.iconName)
-                            .font(CardDesign.title2.weight(.medium))
-                            .foregroundColor(style.accentColor)
-                            .frame(width: iconFrameSize, height: iconFrameSize)
-                            .accessibilityHidden(true) // Decorative icon
+            VStack(spacing: 0) {
+                // Header with icon and title
+                HStack(alignment: .center, spacing: 12) {
+                    // Time-based icon with scaled frame for Dynamic Type
+                    Image(systemName: style.iconName)
+                        .font(CardDesign.title2.weight(.medium))
+                        .foregroundColor(style.accentColor)
+                        .frame(width: iconFrameSize, height: iconFrameSize)
+                        .accessibilityHidden(true) // Decorative icon
 
-                        // Main message on same line as icon
-                        Text(message)
-                            .font(CardDesign.subheadline.weight(.semibold))
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // Show original slogan as subtitle when message and slogan are different
-                    if message != slogan && !slogan.isEmpty {
-                        Text(slogan)
-                            .font(CardDesign.subheadline.weight(.medium))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(2)
-                            .italic()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.trailing, 50) // Space for dismiss button
-                            .padding(.top, 8)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-
-                // Acknowledgement button in bottom-right
-                Button(action: onDismiss) {
-                    Image(systemName: "checkmark")
+                    // Main message on same line as icon
+                    Text(message)
                         .font(CardDesign.subheadline.weight(.semibold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 44, height: 44) // Keep fixed for 44pt touch target
-                        .background(
-                            Circle()
-                                .fill(.secondary.opacity(0.15))
-                        )
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .accessibilityLabel("Dismiss inspiration card")
-                .accessibilityIdentifier(AccessibilityID.InspirationCarousel.cardDismissButton)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Show original slogan as subtitle when message and slogan are different
+                if message != slogan && !slogan.isEmpty {
+                    Text(slogan)
+                        .font(CardDesign.subheadline.weight(.medium))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 8)
+                }
+
+                Spacer(minLength: 12)
+
+                // Bottom row: spacer + dismiss button at right
+                HStack {
+                    Spacer()
+
+                    // Acknowledgement button - tap to dismiss one, long-press to dismiss all
+                    Button(action: onDismiss) {
+                        Image(systemName: "checkmark")
+                            .font(CardDesign.subheadline.weight(.semibold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 44, height: 44) // Keep fixed for 44pt touch target
+                            .background(
+                                Circle()
+                                    .fill(.secondary.opacity(0.15))
+                            )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.5)
+                            .onEnded { _ in
+                                HapticFeedbackService.shared.trigger(.heavy)
+                                onDismissAll()
+                            }
+                    )
+                    .accessibilityLabel("Dismiss inspiration card. Long press to dismiss all.")
+                    .accessibilityIdentifier(AccessibilityID.InspirationCarousel.cardDismissButton)
+                }
             }
             .padding(CardDesign.cardPadding)
-            .padding(.vertical, Spacing.small) // Extra vertical padding for taller cards
             .background(
                 ZStack {
                     CardDesign.cardBackground
@@ -140,25 +158,28 @@ struct InspirationCard: View {
             timeOfDay: .morning,
             completionPercentage: 0.0,
             shouldShow: true,
-            onDismiss: { }
+            onDismiss: { },
+            onDismissAll: { }
         )
-        
+
         InspirationCard(
             message: "Amazing progress! You're at the halfway mark. Your consistency is paying off! 🎯",
             slogan: "Midday momentum, unstoppable force.",
             timeOfDay: .noon,
             completionPercentage: 0.6,
             shouldShow: true,
-            onDismiss: { }
+            onDismiss: { },
+            onDismissAll: { }
         )
-        
+
         InspirationCard(
             message: "🎊 Perfect day complete! You've shown incredible dedication and consistency!",
             slogan: "End strong, dream bigger.",
             timeOfDay: .evening,
             completionPercentage: 1.0,
             shouldShow: true,
-            onDismiss: { }
+            onDismiss: { },
+            onDismissAll: { }
         )
     }
     .padding()

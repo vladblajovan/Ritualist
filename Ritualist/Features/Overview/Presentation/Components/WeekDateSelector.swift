@@ -86,8 +86,7 @@ struct WeekDateSelector: View {
 
     /// Trigger haptic feedback for date selection
     private func triggerHapticFeedback() {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
+        HapticFeedbackService.shared.trigger(.light)
     }
 
     /// Find which week index contains the selected date

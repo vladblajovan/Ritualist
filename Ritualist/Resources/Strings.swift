@@ -196,9 +196,18 @@ public enum Strings {
         // App Settings
         public static let appSettings = String(localized: "settingsAppSettings")
         public static let sectionApp = String(localized: "settingsSectionApp")
+        public static let sectionSettings = String(localized: "settingsSectionSettings")
 
         // Haptic Feedback
         public static let sectionFeedback = String(localized: "settingsSectionFeedback")
+
+        // Icon Visibility
+        public static let sectionIconVisibility = String(localized: "settingsSectionIconVisibility")
+        public static let iconVisibilityFooter = String(localized: "settingsIconVisibilityFooter")
+        public static let showTimeReminderIcon = String(localized: "settingsShowTimeReminderIcon")
+        public static let showLocationIcon = String(localized: "settingsShowLocationIcon")
+        public static let showScheduleIcon = String(localized: "settingsShowScheduleIcon")
+        public static let showStreakAtRiskIcon = String(localized: "settingsShowStreakAtRiskIcon")
         public static let hapticFeedback = String(localized: "settingsHapticFeedback")
         public static let hapticFeedbackDescription = String(localized: "settingsHapticFeedbackDescription")
         public static let hapticFeedbackFooter = String(localized: "settingsHapticFeedbackFooter")
@@ -1085,6 +1094,9 @@ public enum Strings {
         public static let accessibilityHint = String(localized: "habitsAssistant.accessibilityHint")
         public static let addHabitLabel = String(localized: "habitsAssistant.addHabit.label")
         public static let addHabitHint = String(localized: "habitsAssistant.addHabit.hint")
+        public static let searchPlaceholder = String(localized: "habitsAssistant.searchPlaceholder")
+        public static let noSearchResults = String(localized: "habitsAssistant.noSearchResults")
+        public static let tryDifferentKeywords = String(localized: "habitsAssistant.tryDifferentKeywords")
     }
 
     // MARK: - Location
@@ -1266,6 +1278,13 @@ public enum Strings {
                 )
             }
         }
+    }
+
+    // MARK: - User Guide
+    public enum UserGuide {
+        public static let title = String(localized: "userGuide.title")
+        public static let tableOfContents = String(localized: "userGuide.tableOfContents")
+        public static let searchPlaceholder = String(localized: "userGuide.searchPlaceholder")
     }
 
     // MARK: - Common

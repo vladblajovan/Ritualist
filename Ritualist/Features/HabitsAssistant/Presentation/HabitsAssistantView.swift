@@ -25,11 +25,28 @@ public struct HabitsAssistantView: View {
     @State private var processingAddSuggestionId: String?
     @State private var processingRemoveSuggestionId: String?
 
+    /// Search text for filtering habit suggestions
+    @State private var searchText = ""
+
+    /// Preserves category selection when searching, restores when search is cleared
+    @State private var categoryBeforeSearch: HabitCategory?
+
+    /// Filtered suggestions based on search text and selected category
+    private var filteredSuggestions: [HabitSuggestion] {
+        let suggestions = vm.getSuggestions()
+        guard !searchText.isEmpty else { return suggestions }
+
+        return suggestions.filter { suggestion in
+            suggestion.name.localizedCaseInsensitiveContains(searchText) ||
+            suggestion.description.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
     public var body: some View {
         ScrollView {
             VStack(spacing: 0) {
                 // Show enhanced intro section only on first visit (post-onboarding)
-                if isFirstVisit {
+                if isFirstVisit && searchText.isEmpty {
                     VStack(alignment: .leading, spacing: Spacing.medium) {
                         VStack(alignment: .leading, spacing: Spacing.xxsmall) {
                             Text(Strings.HabitsAssistant.firstVisitTitle)
@@ -56,7 +73,7 @@ public struct HabitsAssistantView: View {
                 }
 
                 // Regular limit banner (shown when at/over limit on subsequent visits)
-                if !isFirstVisit && vm.shouldShowLimitBanner {
+                if !isFirstVisit && vm.shouldShowLimitBanner && searchText.isEmpty {
                     HabitLimitBannerView(
                         currentCount: vm.projectedHabitCount,
                         maxCount: vm.maxHabitsAllowed,
@@ -67,54 +84,89 @@ public struct HabitsAssistantView: View {
                     .padding(.bottom, Spacing.small)
                 }
 
-                // Category selector
-                CategoryCarouselWithManagement(
-                    categories: vm.categories,
-                    selectedCategory: $vm.selectedCategory,
-                    onManageTap: nil,
-                    scrollToStartOnSelection: false,
-                    allowDeselection: true,
-                    unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
-                )
-                .padding(.top, Spacing.small)
-                .padding(.bottom, Spacing.small)
+                // Category selector (hidden when searching)
+                if searchText.isEmpty {
+                    CategoryCarouselWithManagement(
+                        categories: vm.categories,
+                        selectedCategory: $vm.selectedCategory,
+                        onManageTap: nil,
+                        scrollToStartOnSelection: false,
+                        allowDeselection: true,
+                        unselectedBackgroundColor: Color(.secondarySystemGroupedBackground)
+                    )
+                    .padding(.top, Spacing.small)
+                    .padding(.bottom, Spacing.small)
+                }
 
                 // Habit suggestions
-                LazyVStack(spacing: Spacing.medium) {
-                    ForEach(vm.getSuggestions()) { suggestion in
-                        let isAdded = vm.addedSuggestionIds.contains(suggestion.id)
-                        let isProcessingAdd = processingAddSuggestionId == suggestion.id
-                        let isProcessingRemove = processingRemoveSuggestionId == suggestion.id
-
-                        HabitSuggestionRow(
-                            suggestion: suggestion,
-                            isAdded: isAdded,
-                            isProcessing: isProcessingAdd || isProcessingRemove,
-                            onTap: {
-                                // Check current state at tap time from ViewModel
-                                let currentlyAdded = vm.addedSuggestionIds.contains(suggestion.id)
-
-                                if currentlyAdded {
-                                    // Remove habit
-                                    processingRemoveSuggestionId = suggestion.id
-                                    await onRemoveHabit(suggestion.id)
-                                    processingRemoveSuggestionId = nil
-                                } else {
-                                    // Add habit
-                                    processingAddSuggestionId = suggestion.id
-                                    await onAddHabit(suggestion)
-                                    processingAddSuggestionId = nil
-                                }
-                            }
-                        )
+                if filteredSuggestions.isEmpty && !searchText.isEmpty {
+                    // Empty search results - centered in available space
+                    GeometryReader { geometry in
+                        VStack(spacing: Spacing.medium) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text(Strings.HabitsAssistant.noSearchResults)
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Text(Strings.HabitsAssistant.tryDifferentKeywords)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: geometry.size.height)
+                        .padding(.horizontal, Spacing.xlarge)
                     }
+                    .frame(minHeight: 300)
+                } else {
+                    LazyVStack(spacing: Spacing.medium) {
+                        ForEach(filteredSuggestions) { suggestion in
+                            let isAdded = vm.addedSuggestionIds.contains(suggestion.id)
+                            let isProcessingAdd = processingAddSuggestionId == suggestion.id
+                            let isProcessingRemove = processingRemoveSuggestionId == suggestion.id
+
+                            HabitSuggestionRow(
+                                suggestion: suggestion,
+                                isAdded: isAdded,
+                                isProcessing: isProcessingAdd || isProcessingRemove,
+                                onTap: {
+                                    // Check current state at tap time from ViewModel
+                                    let currentlyAdded = vm.addedSuggestionIds.contains(suggestion.id)
+
+                                    if currentlyAdded {
+                                        // Remove habit
+                                        processingRemoveSuggestionId = suggestion.id
+                                        await onRemoveHabit(suggestion.id)
+                                        processingRemoveSuggestionId = nil
+                                    } else {
+                                        // Add habit
+                                        processingAddSuggestionId = suggestion.id
+                                        await onAddHabit(suggestion)
+                                        processingAddSuggestionId = nil
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, Spacing.medium)
+                    .padding(.top, Spacing.medium)
+                    .padding(.bottom, Spacing.xlarge)
                 }
-                .padding(.horizontal, Spacing.medium)
-                .padding(.top, Spacing.medium)
-                .padding(.bottom, Spacing.xlarge)
             }
         }
         .background(Color(.systemGroupedBackground))
+        .searchable(text: $searchText, prompt: Strings.HabitsAssistant.searchPlaceholder)
+        .onChange(of: searchText) { _, newValue in
+            // Preserve category when searching, restore when search is cleared
+            if !newValue.isEmpty && vm.selectedCategory != nil {
+                categoryBeforeSearch = vm.selectedCategory
+                vm.selectedCategory = nil
+            } else if newValue.isEmpty && categoryBeforeSearch != nil {
+                vm.selectedCategory = categoryBeforeSearch
+                categoryBeforeSearch = nil
+            }
+        }
         .task {
             await vm.loadCategories()
         }

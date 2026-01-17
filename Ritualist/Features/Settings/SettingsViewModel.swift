@@ -4,6 +4,15 @@ import FactoryKit
 import RitualistCore
 import StoreKit
 
+// MARK: - Restore Purchases Result
+
+/// Result of a restore purchases operation
+public struct RestorePurchasesResult {
+    public let success: Bool
+    public let message: String
+    public let count: Int
+}
+
 // MARK: - Settings View Model
 
 @MainActor @Observable
@@ -597,9 +606,9 @@ extension SettingsViewModel {
     /// 3. Registers each purchase in the premium cache
     /// 4. Logs any failures for visibility
     ///
-    /// - Returns: Tuple with success flag and restored product count (or error message)
+    /// - Returns: Result with success flag, message, and restored product count
     ///
-    public func restorePurchases() async -> (success: Bool, message: String, count: Int) {
+    public func restorePurchases() async -> RestorePurchasesResult {
         do {
             // First sync with App Store
             try await AppStore.sync()
@@ -620,10 +629,10 @@ extension SettingsViewModel {
                     metadata: ["restored_count": productIds.count]
                 )
 
-                return (true, "Restored \(productIds.count) purchase(s)", productIds.count)
+                return RestorePurchasesResult(success: true, message: "Restored \(productIds.count) purchase(s)", count: productIds.count)
 
             case .noProductsToRestore:
-                return (false, "No purchases to restore", 0)
+                return RestorePurchasesResult(success: false, message: "No purchases to restore", count: 0)
 
             case .failed(let errorMessage):
                 logger.log(
@@ -632,7 +641,7 @@ extension SettingsViewModel {
                     category: .subscription,
                     metadata: ["error": errorMessage]
                 )
-                return (false, "Restore failed: \(errorMessage)", 0)
+                return RestorePurchasesResult(success: false, message: "Restore failed: \(errorMessage)", count: 0)
             }
         } catch {
             logger.log(
@@ -641,7 +650,7 @@ extension SettingsViewModel {
                 category: .subscription,
                 metadata: ["error": error.localizedDescription]
             )
-            return (false, "Restore failed: \(error.localizedDescription)", 0)
+            return RestorePurchasesResult(success: false, message: "Restore failed: \(error.localizedDescription)", count: 0)
         }
     }
 }

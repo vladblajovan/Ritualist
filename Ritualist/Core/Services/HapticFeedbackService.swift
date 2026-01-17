@@ -1,7 +1,7 @@
 import UIKit
 import SwiftUI
 
-public enum HapticFeedbackType {
+public enum HapticFeedbackType: Sendable {
     case success
     case error
     case warning

@@ -500,7 +500,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
                         if isRemainingViewCompact {
                             compactRemainingCircles(habits: visibleIncompleteHabits)
-                                .padding(.horizontal, 12)
+                                .padding(.horizontal, 6)
                         } else {
                             LazyVGrid(columns: iPadGrid, spacing: 8) {
                                 ForEach(visibleIncompleteHabits, id: \.id) { habit in
@@ -519,7 +519,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
                         if isCompletedViewCompact {
                             compactCompletedCircles(habits: summary.completedHabits)
-                                .padding(.horizontal, 12)
+                                .padding(.horizontal, 6)
                         } else {
                             LazyVGrid(columns: iPadGrid, spacing: 8) {
                                 ForEach(summary.completedHabits, id: \.id) { habit in
@@ -542,7 +542,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
                         if isRemainingViewCompact {
                             compactRemainingCircles(habits: visibleIncompleteHabits)
-                                .padding(.horizontal, 12)
+                                .padding(.horizontal, 6)
                         } else {
                             incompleteHabitsContent(summary: summary)
                         }
@@ -557,7 +557,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
                         if isCompletedViewCompact {
                             compactCompletedCircles(habits: summary.completedHabits)
-                                .padding(.horizontal, 12)
+                                .padding(.horizontal, 6)
                         } else {
                             completedHabitsContent(summary: summary)
                         }
@@ -656,9 +656,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func completedSectionHeader(count: Int) -> some View {
         HStack {
-            Text(Strings.Overview.completed)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.green)
+                Text(Strings.Overview.completed)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
 
             Spacer()
 
@@ -730,9 +735,14 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func remainingSectionHeader(count: Int) -> some View {
         HStack {
-            Text(Strings.Overview.remaining)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: "circle.dashed")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppColors.brand)
+                Text(Strings.Overview.remaining)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
 
             Spacer()
 
@@ -1043,7 +1053,6 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Text(habit.name)
                 .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundColor(isCompleted ? .gray : (isDisabled ? .secondary.opacity(0.7) : .primary))
-                .strikethrough(isCompleted, color: .gray)
                 .lineLimit(1)
 
             if habit.kind == .numeric {
@@ -1068,7 +1077,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
                 showingDeleteAlert = true
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: 14))
                     .foregroundColor(.gray.opacity(0.8))
                     .padding(.leading, 8)
                     .contentShape(Rectangle())

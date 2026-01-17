@@ -114,6 +114,9 @@ class StringValidator {
                      lowercaseKey.contains("privacypolicy") ||
                      lowercaseKey.contains("legaltext"):
             return .legalText
+        // User guide content strings - detailed explanatory text
+        case _ where key.hasPrefix("userGuide.item.") && lowercaseKey.contains(".content"):
+            return .legalText
         // Category deactivate confirmations are longer (explain consequences)
         case _ where key.hasPrefix("category.deactivate.confirm"):
             return .longDescription
@@ -121,7 +124,8 @@ class StringValidator {
         case _ where lowercaseKey.contains("nocategoryhabits") ||
                      lowercaseKey.contains("emptystate") ||
                      key == "icloud.description" ||
-                     key == "components.habitIconsDescription":
+                     key == "components.habitIconsDescription" ||
+                     key == "habitsAssistant.tryDifferentKeywords":
             return .longDescription
 
         // ===== GENERIC PATTERNS =====

@@ -315,7 +315,9 @@ struct AppBrandHeader: View {
                 progressBar
             }
         }
+        .padding(.horizontal, Spacing.xxlarge)
         .padding(.bottom, circularProgressOverhang)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) {
             // Fade gradient that overlays scroll content for smooth fade effect
             LinearGradient(
@@ -437,6 +439,7 @@ struct AppBrandHeader: View {
                             .allowsHitTesting(false)
                     }
                 }
+                .padding(.trailing, Spacing.xsmall)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

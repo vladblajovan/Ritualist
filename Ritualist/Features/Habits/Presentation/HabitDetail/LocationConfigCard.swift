@@ -329,8 +329,7 @@ private struct RadiusControl: View {
 
         // Only trigger haptic if value changed
         if snapped != radius {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            HapticFeedbackService.shared.trigger(.light)
             radius = snapped
         }
     }

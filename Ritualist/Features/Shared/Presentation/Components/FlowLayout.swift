@@ -44,7 +44,7 @@ struct FlowLayout: Layout {
         var totalHeight: CGFloat = 0
         var rowHeight: CGFloat = 0
 
-        for (index, _) in subviews.enumerated() {
+        for index in subviews.indices {
             let subviewSize = cache.subviewSizes[index]
 
             // Check if adding this item would exceed container width.
