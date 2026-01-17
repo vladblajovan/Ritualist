@@ -78,14 +78,31 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     
     public func startScheduling(for userId: UUID) async {
         guard !scheduledUsers.contains(userId) else { return }
-        
+
         do {
             // Get user preferences
             guard let preferences = try await personalityRepository.getAnalysisPreferences(for: userId),
                   preferences.isCurrentlyActive else {
                 return
             }
-            
+
+            // Check if user has sufficient data before scheduling notifications
+            // This prevents misleading "checking your habits" notifications when analysis can't run
+            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+            guard eligibility.isEligible else {
+                logger.log(
+                    "Skipping personality analysis scheduling - user not eligible",
+                    level: .info,
+                    category: .personality,
+                    metadata: [
+                        "userId": userId.uuidString,
+                        "progress": eligibility.overallProgress,
+                        "missingRequirements": eligibility.missingRequirements.count
+                    ]
+                )
+                return
+            }
+
             scheduledUsers.insert(userId)
             await scheduleNextAnalysis(for: userId, preferences: preferences)
             saveSchedulerState()
@@ -176,16 +193,36 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     
     public func updateScheduling(for userId: UUID, preferences: PersonalityAnalysisPreferences) async {
         if preferences.isCurrentlyActive {
-            // Update existing scheduling or start new
-            await scheduleNextAnalysis(for: userId, preferences: preferences)
-            if !scheduledUsers.contains(userId) {
-                scheduledUsers.insert(userId)
+            // Check eligibility before scheduling to avoid misleading notifications
+            do {
+                let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+                if eligibility.isEligible {
+                    await scheduleNextAnalysis(for: userId, preferences: preferences)
+                    if !scheduledUsers.contains(userId) {
+                        scheduledUsers.insert(userId)
+                    }
+                } else {
+                    // Not eligible - ensure no stale notifications remain
+                    await notificationService.cancelPersonalityAnalysis(userId: userId)
+                    scheduledUsers.remove(userId)
+                    logger.log(
+                        "Skipping personality scheduling update - user not eligible",
+                        level: .info,
+                        category: .personality
+                    )
+                }
+            } catch {
+                logger.log(
+                    "Failed to check eligibility during scheduling update: \(error.localizedDescription)",
+                    level: .error,
+                    category: .personality
+                )
             }
         } else {
             // Stop scheduling if disabled
             await stopScheduling(for: userId)
         }
-        
+
         saveSchedulerState()
     }
     
