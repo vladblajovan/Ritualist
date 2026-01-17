@@ -17,6 +17,9 @@ public final class PersonalityInsightsViewModel {
     public var preferences: PersonalityAnalysisPreferences?
     public var isLoadingPreferences = false
     public var isSavingPreferences = false
+    public var lastSeenAnalysisDate: Date?
+    /// Error message shown when preference save fails - cleared on next successful save or manual dismissal
+    public var preferenceSaveError: String?
 
     // MARK: - View State
 
@@ -34,6 +37,8 @@ public final class PersonalityInsightsViewModel {
     private let getPersonalityProfileUseCase: GetPersonalityProfileUseCase
     private let validateAnalysisDataUseCase: ValidateAnalysisDataUseCase
     private let deletePersonalityDataUseCase: DeletePersonalityDataUseCase
+    private let markAnalysisAsSeenUseCase: MarkAnalysisAsSeenUseCase
+    private let getLastSeenAnalysisDateUseCase: GetLastSeenAnalysisDateUseCase
     private let loadProfile: LoadProfileUseCase
     private let logger: DebugLogger
     private var currentUserId: UUID?
@@ -48,18 +53,23 @@ public final class PersonalityInsightsViewModel {
         getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
         saveAnalysisPreferencesUseCase: SaveAnalysisPreferencesUseCase,
         deletePersonalityDataUseCase: DeletePersonalityDataUseCase,
+        markAnalysisAsSeenUseCase: MarkAnalysisAsSeenUseCase,
+        getLastSeenAnalysisDateUseCase: GetLastSeenAnalysisDateUseCase,
         startAnalysisSchedulingUseCase: StartAnalysisSchedulingUseCase,
         updateAnalysisSchedulingUseCase: UpdateAnalysisSchedulingUseCase,
         getNextScheduledAnalysisUseCase: GetNextScheduledAnalysisUseCase,
+        triggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase,
         triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
-        forceManualAnalysisUseCase: ForceManualAnalysisUseCase,
         loadProfile: LoadProfileUseCase,
+        userDefaults: UserDefaultsService,
         logger: DebugLogger
     ) {
         self.analyzePersonalityUseCase = analyzePersonalityUseCase
         self.getPersonalityProfileUseCase = getPersonalityProfileUseCase
         self.validateAnalysisDataUseCase = validateAnalysisDataUseCase
         self.deletePersonalityDataUseCase = deletePersonalityDataUseCase
+        self.markAnalysisAsSeenUseCase = markAnalysisAsSeenUseCase
+        self.getLastSeenAnalysisDateUseCase = getLastSeenAnalysisDateUseCase
         self.loadProfile = loadProfile
         self.logger = logger
         self.currentUserId = nil
@@ -69,8 +79,9 @@ public final class PersonalityInsightsViewModel {
             startAnalysisSchedulingUseCase: startAnalysisSchedulingUseCase,
             updateAnalysisSchedulingUseCase: updateAnalysisSchedulingUseCase,
             getNextScheduledAnalysisUseCase: getNextScheduledAnalysisUseCase,
+            triggerAppropriateAnalysisUseCase: triggerAppropriateAnalysisUseCase,
             triggerAnalysisCheckUseCase: triggerAnalysisCheckUseCase,
-            forceManualAnalysisUseCase: forceManualAnalysisUseCase,
+            userDefaults: userDefaults,
             logger: logger
         )
     }
@@ -79,13 +90,16 @@ public final class PersonalityInsightsViewModel {
     
     public func loadPersonalityInsights() async {
         viewState = .loading
-        
+
+        // Load the last seen analysis date for "New Analysis" indicator
+        await loadLastSeenAnalysisDate()
+
         // Load user ID first
         guard let userId = await getCurrentUserId() else {
             viewState = .error(.unknownError("Failed to load user profile"))
             return
         }
-        
+
         // Always load preferences first to get current analysis state
         await loadPreferences()
         
@@ -115,11 +129,46 @@ public final class PersonalityInsightsViewModel {
             
             // Check if user has sufficient data for analysis
             let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
-            
+
             if eligibility.isEligible {
-                // User has sufficient data, perform analysis
-                let profile = try await analyzePersonalityUseCase.execute(for: userId)
-                viewState = .ready(profile: profile)
+                // User has sufficient data - trigger analysis through scheduler
+                // This ensures notification is sent and profile is saved properly
+                logger.log("Triggering analysis for eligible user", level: .debug, category: .personality)
+                await preferencesManager.triggerAnalysis(for: userId)
+                logger.log("Analysis trigger completed, checking for generated profile", level: .debug, category: .personality)
+
+                // Retry fetching profile with exponential backoff to handle SwiftData persistence timing
+                // Delays: 500ms, 750ms, 1s, 1.5s = total ~3.75s max wait
+                // This handles slow persistence under heavy load while keeping typical case fast
+                let maxRetries = 5
+                let baseDelayNs: UInt64 = 500_000_000 // 0.5 seconds base
+
+                var generatedProfile: PersonalityProfile?
+                for attempt in 1...maxRetries {
+                    generatedProfile = try await getPersonalityProfileUseCase.execute(for: userId)
+                    if generatedProfile != nil {
+                        logger.log("Profile found on attempt \(attempt)", level: .debug, category: .personality)
+                        break
+                    }
+                    if attempt < maxRetries {
+                        // Exponential backoff: 500ms, 750ms, 1000ms, 1500ms
+                        let delayMultiplier = UInt64(pow(1.5, Double(attempt - 1)))
+                        let delay = baseDelayNs * delayMultiplier
+                        logger.log("Profile not found on attempt \(attempt), retrying in \(delay / 1_000_000)ms...", level: .debug, category: .personality)
+                        try await Task.sleep(nanoseconds: delay)
+                    }
+                }
+
+                if let profile = generatedProfile {
+                    viewState = .ready(profile: profile)
+                } else {
+                    // User met eligibility but profile generation failed after retries.
+                    // This indicates an unexpected internal error (scheduler/repository issue).
+                    // Generic message is intentional: user can't act on internal details,
+                    // retry is the only actionable advice. Detailed logging captures context for debugging.
+                    logger.log("Analysis triggered for eligible user but profile not created after \(maxRetries) attempts - possible scheduler/repository issue", level: .error, category: .personality)
+                    viewState = .error(.unknownError("Unable to generate your personality analysis. Please try again."))
+                }
             } else {
                 // User doesn't have sufficient data
                 let requirements = try await validateAnalysisDataUseCase.getProgressDetails(for: userId)
@@ -144,17 +193,24 @@ public final class PersonalityInsightsViewModel {
         default:
             return
         }
-        
+
         guard let userId = await getCurrentUserId() else {
             viewState = .error(.unknownError("Failed to load user profile"))
             return
         }
-        
+
         viewState = .loading
-        
+
+        // Trigger analysis through scheduler - ensures notification is sent
+        await preferencesManager.triggerAnalysis(for: userId)
+
+        // Reload the generated profile
         do {
-            let profile = try await analyzePersonalityUseCase.execute(for: userId)
-            viewState = .ready(profile: profile)
+            if let profile = try await getPersonalityProfileUseCase.execute(for: userId) {
+                viewState = .ready(profile: profile)
+            } else {
+                viewState = .error(.unknownError("Failed to regenerate analysis"))
+            }
         } catch let error as PersonalityAnalysisError {
             viewState = .error(error)
         } catch {
@@ -230,8 +286,10 @@ public final class PersonalityInsightsViewModel {
 
     public func savePreferences(_ newPreferences: PersonalityAnalysisPreferences) async {
         isSavingPreferences = true
+        preferenceSaveError = nil // Clear any previous error
         guard let userId = await getCurrentUserId() else {
             isSavingPreferences = false
+            preferenceSaveError = "Unable to save preferences. Please try again."
             return
         }
         let success = await preferencesManager.savePreferences(newPreferences, for: userId)
@@ -240,8 +298,16 @@ public final class PersonalityInsightsViewModel {
             if !newPreferences.isCurrentlyActive {
                 await loadPersonalityInsights()
             }
+        } else {
+            preferenceSaveError = "Unable to save preferences. Please try again."
+            logger.log("Failed to save personality analysis preferences", level: .error, category: .personality)
         }
         isSavingPreferences = false
+    }
+
+    /// Clears the preference save error (for manual dismissal from UI)
+    public func clearPreferenceSaveError() {
+        preferenceSaveError = nil
     }
 
     public func deleteAllPersonalityData() async {
@@ -291,6 +357,32 @@ public final class PersonalityInsightsViewModel {
         return false
     }
 
+    /// Returns true if there's a new analysis the user hasn't seen yet
+    /// Only returns true when the user has a previously acknowledged analysis date
+    /// and the current profile is newer than that date
+    public var hasUnseenAnalysis: Bool {
+        guard let profile = currentProfile else { return false }
+        guard let lastSeen = lastSeenAnalysisDate else {
+            // User has never dismissed the banner - don't show it for first-time users
+            // The "New Analysis" indicator is meant for users who had a previous baseline
+            return false
+        }
+        // Analysis is unseen if it was generated after the last time user dismissed the banner
+        return profile.analysisMetadata.analysisDate > lastSeen
+    }
+
+    /// Marks the current analysis as seen, hiding the "New Analysis" indicator
+    public func markAnalysisAsSeen() async {
+        guard let profile = currentProfile else { return }
+        lastSeenAnalysisDate = profile.analysisMetadata.analysisDate
+        await markAnalysisAsSeenUseCase.execute(analysisDate: profile.analysisMetadata.analysisDate)
+    }
+
+    /// Loads the last seen analysis date from persistence
+    private func loadLastSeenAnalysisDate() async {
+        lastSeenAnalysisDate = await getLastSeenAnalysisDateUseCase.execute()
+    }
+
     // MARK: - Scheduling
 
     public func getNextScheduledAnalysisDate() async -> Date? {
@@ -300,7 +392,7 @@ public final class PersonalityInsightsViewModel {
 
     public func triggerManualAnalysisCheck() async {
         guard let userId = await getCurrentUserId() else { return }
-        await preferencesManager.triggerManualAnalysisCheck(for: userId, preferences: preferences)
+        await preferencesManager.triggerAnalysis(for: userId)
         await loadPersonalityInsights()
     }
 

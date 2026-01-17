@@ -90,7 +90,7 @@ public actor TestNotificationService: NotificationService {
     nonisolated public func checkAuthorizationStatus() async -> Bool { return true }
     nonisolated public func schedule(for habitID: UUID, times: [ReminderTime]) async throws {}
     nonisolated public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {}
-    nonisolated public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws {}
+    nonisolated public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int, habitCategory: String?, currentStreak: Int, isWeekend: Bool) async throws {}
     nonisolated public func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws {}
     nonisolated public func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws {}
     nonisolated public func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws {}
@@ -104,6 +104,7 @@ public actor TestNotificationService: NotificationService {
     nonisolated public func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws {}
     nonisolated public func updateBadgeCount() async {}
     nonisolated public func decrementBadge() async {}
+    nonisolated public func clearPersonalityNotifications() async {}
     nonisolated public func syncFiredNotificationsFromDelivered() async {}
 
     // MARK: - Pending Notification Management (Trackable)
@@ -133,7 +134,6 @@ public actor TrackingNotificationService: NotificationService {
         public let habitName: String
         public let habitKind: HabitKind
         public let time: ReminderTime
-        public let badgeNumber: Int
     }
 
     private var scheduledNotifications: [ScheduledNotification] = []
@@ -185,13 +185,12 @@ public actor TrackingNotificationService: NotificationService {
     nonisolated public func schedule(for habitID: UUID, times: [ReminderTime]) async throws {}
     nonisolated public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {}
 
-    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws {
+    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int, habitCategory: String?, currentStreak: Int, isWeekend: Bool) async throws {
         scheduledNotifications.append(ScheduledNotification(
             habitID: habitID,
             habitName: habitName,
             habitKind: habitKind,
-            time: time,
-            badgeNumber: badgeNumber
+            time: time
         ))
     }
 
@@ -212,6 +211,7 @@ public actor TrackingNotificationService: NotificationService {
     nonisolated public func sendLocationTriggeredNotification(for habitID: UUID, habitName: String, event: GeofenceEvent) async throws {}
     nonisolated public func updateBadgeCount() async {}
     nonisolated public func decrementBadge() async {}
+    nonisolated public func clearPersonalityNotifications() async {}
     nonisolated public func syncFiredNotificationsFromDelivered() async {}
 
     public func getPendingHabitNotificationIds() async -> [String] {

@@ -192,6 +192,16 @@ public enum Strings {
         public static let acknowledgementsIntro = String(localized: "settingsAcknowledgementsIntro")
         public static let factoryDescription = String(localized: "settingsFactoryDescription")
         public static let viewOnGitHub = String(localized: "settingsViewOnGitHub")
+
+        // App Settings
+        public static let appSettings = String(localized: "settingsAppSettings")
+        public static let sectionApp = String(localized: "settingsSectionApp")
+
+        // Haptic Feedback
+        public static let sectionFeedback = String(localized: "settingsSectionFeedback")
+        public static let hapticFeedback = String(localized: "settingsHapticFeedback")
+        public static let hapticFeedbackDescription = String(localized: "settingsHapticFeedbackDescription")
+        public static let hapticFeedbackFooter = String(localized: "settingsHapticFeedbackFooter")
     }
 
     // MARK: - Timezone Settings
@@ -338,12 +348,22 @@ public enum Strings {
 
         // Streaks Card
         public static let currentStreaks = String(localized: "overview.currentStreaks")
+        public static let streaks = String(localized: "overview.streaks")
         public static func streaksCount(_ count: Int) -> String {
             String(format: String(localized: "overview.streaksCount"), count, count == 1 ? "streak" : "streaks")
         }
         public static let loadingStreaks = String(localized: "overview.loadingStreaks")
         public static let noActiveStreaks = String(localized: "overview.noActiveStreaks")
         public static let startCompletingHabits = String(localized: "overview.startCompletingHabits")
+
+        // No Habits Scheduled Info Sheet
+        public static let noHabitsInfoTitle = String(localized: "overview.noHabitsInfo.title")
+        public static let noHabitsReasonHeader = String(localized: "overview.noHabitsInfo.reasonHeader")
+        public static let noHabitsReasonScheduleTitle = String(localized: "overview.noHabitsInfo.schedule.title")
+        public static let noHabitsReasonScheduleDesc = String(localized: "overview.noHabitsInfo.schedule.desc")
+        public static let noHabitsReasonStartDateTitle = String(localized: "overview.noHabitsInfo.startDate.title")
+        public static let noHabitsReasonStartDateDesc = String(localized: "overview.noHabitsInfo.startDate.desc")
+        public static let noHabitsReasonFooter = String(localized: "overview.noHabitsInfo.footer")
     }
     
     // MARK: - Calendar
@@ -537,6 +557,7 @@ public enum Strings {
         public static let completedSectionHeader = String(localized: "accessibilityCompletedSectionHeader")
         public static let remainingSectionHeader = String(localized: "accessibilityRemainingSectionHeader")
         public static let noHabitsScheduledAccessibility = String(localized: "accessibilityNoHabitsScheduled")
+        public static let noHabitsInfoButton = String(localized: "accessibilityNoHabitsInfoButton")
         public static let loadingHabits = String(localized: "accessibilityLoadingHabits")
 
         // MARK: - Quick Actions Accessibility
@@ -670,6 +691,14 @@ public enum Strings {
         public static let scheduledTodayDesc = String(localized: "components.scheduledToday.desc")
         public static let notScheduledTodayTitle = String(localized: "components.notScheduledToday.title")
         public static let notScheduledTodayDesc = String(localized: "components.notScheduledToday.desc")
+
+        // Icon Visibility Toggles
+        public static let iconVisibility = String(localized: "components.iconVisibility")
+        public static let iconVisibilityDescription = String(localized: "components.iconVisibilityDescription")
+        public static let streakAtRiskTitle = String(localized: "components.streakAtRisk.title")
+        public static let streakAtRiskDesc = String(localized: "components.streakAtRisk.desc")
+        public static let scheduleIndicatorTitle = String(localized: "components.scheduleIndicator.title")
+        public static let scheduleIndicatorDesc = String(localized: "components.scheduleIndicator.desc")
 
         // Category Filter
         public static let habitsAssistant = String(localized: "components.habitsAssistant")

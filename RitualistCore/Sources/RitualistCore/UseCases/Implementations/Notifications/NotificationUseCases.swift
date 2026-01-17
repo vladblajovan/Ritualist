@@ -2,54 +2,42 @@ import Foundation
 
 // MARK: - Notification Use Case Implementations
 
+/// Schedules notifications for a habit by triggering a full reschedule of all habit notifications.
+///
+/// This ensures consistent badge numbering across all habits by routing through
+/// `DailyNotificationSchedulerService`, which assigns badges based on time-sorted delivery order.
 public final class ScheduleHabitReminders: ScheduleHabitRemindersUseCase {
-    private let habitRepository: HabitRepository
+    private let dailyNotificationScheduler: DailyNotificationSchedulerService
     private let notificationService: NotificationService
-    private let habitCompletionCheckService: HabitCompletionCheckService
     private let logger: DebugLogger
 
     public init(
-        habitRepository: HabitRepository,
+        dailyNotificationScheduler: DailyNotificationSchedulerService,
         notificationService: NotificationService,
-        habitCompletionCheckService: HabitCompletionCheckService,
         logger: DebugLogger
     ) {
-        self.habitRepository = habitRepository
+        self.dailyNotificationScheduler = dailyNotificationScheduler
         self.notificationService = notificationService
-        self.habitCompletionCheckService = habitCompletionCheckService
         self.logger = logger
     }
-    
-    public func execute(habit: Habit) async throws {
-        // Cancel existing notifications for this habit
-        await notificationService.cancel(for: habit.id)
-        
-        // Schedule new notifications only for active habits with reminders
-        guard habit.isActive && !habit.reminders.isEmpty else { return }
-        
-        // Check if habit is already completed for today
-        let today = Date()
-        let shouldShow = await habitCompletionCheckService.shouldShowNotification(habitId: habit.id, date: today)
-        
-        // Only schedule notifications if the habit is not completed today
-        guard shouldShow else {
-            logger.logNotification(
-                event: "Habit already completed, skipping notification scheduling",
-                habitId: habit.id.uuidString,
-                metadata: ["habit_name": habit.name]
-            )
-            return
-        }
 
+    public func execute(habit: Habit) async throws {
         logger.logNotification(
-            event: "Scheduling habit notifications",
+            event: "Habit saved - triggering full notification reschedule",
             habitId: habit.id.uuidString,
             metadata: [
                 "habit_name": habit.name,
+                "is_active": habit.isActive,
                 "reminder_count": habit.reminders.count
             ]
         )
-        try await notificationService.scheduleWithActions(for: habit.id, habitName: habit.name, habitKind: habit.kind, times: habit.reminders)
+
+        // Cancel this habit's notifications immediately (handles deleted reminders)
+        await notificationService.cancel(for: habit.id)
+
+        // Trigger full reschedule for correct badge ordering across all habits
+        // The bulk scheduler handles: active check, completion check, time sorting, badge assignment
+        try await dailyNotificationScheduler.rescheduleAllHabitNotifications()
     }
 }
 

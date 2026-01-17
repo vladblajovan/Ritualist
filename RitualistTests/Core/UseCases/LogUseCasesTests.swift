@@ -387,7 +387,7 @@ struct GetLogForDateUseCaseTests {
 
         // Assert
         #expect(result != nil, "Should find log for today")
-        #expect(CalendarUtils.isSameDay(result!.date, TestDates.today), "Should return today's log")
+        #expect(CalendarUtils.areSameDayLocal(result!.date, TestDates.today, timezone: .current), "Should return today's log")
     }
 
     @Test("Returns nil when no log exists for date")

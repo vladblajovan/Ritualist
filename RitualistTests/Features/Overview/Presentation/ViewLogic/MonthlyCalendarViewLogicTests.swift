@@ -411,7 +411,7 @@ struct MonthlyCalendarViewLogicTests {
         #expect(color == CardDesign.progressGreen)
     }
 
-    @Test("Background color at 85% - should be green")
+    @Test("Background color at 85% - should be light green")
     func backgroundColorAt85Percent() {
         let context = MonthlyCalendarViewLogic.DayContext(
             date: yesterday,
@@ -422,7 +422,7 @@ struct MonthlyCalendarViewLogicTests {
         )
 
         let color = MonthlyCalendarViewLogic.backgroundColor(for: context)
-        #expect(color == CardDesign.progressGreen)
+        #expect(color == CardDesign.progressLightGreen)
     }
 
     @Test("Background color at 65% - should be orange")
@@ -439,7 +439,7 @@ struct MonthlyCalendarViewLogicTests {
         #expect(color == CardDesign.progressOrange)
     }
 
-    @Test("Background color at 80% - should be green")
+    @Test("Background color at 80% - should be light green")
     func backgroundColorAt80Percent() {
         let context = MonthlyCalendarViewLogic.DayContext(
             date: yesterday,
@@ -450,7 +450,7 @@ struct MonthlyCalendarViewLogicTests {
         )
 
         let color = MonthlyCalendarViewLogic.backgroundColor(for: context)
-        #expect(color == CardDesign.progressGreen)
+        #expect(color == CardDesign.progressLightGreen)
     }
 
     @Test("Background color at 50% - should be orange")
@@ -467,7 +467,7 @@ struct MonthlyCalendarViewLogicTests {
         #expect(color == CardDesign.progressOrange)
     }
 
-    @Test("Background color at 49% - should be red")
+    @Test("Background color at 49% - should be coral")
     func backgroundColorAt49Percent() {
         let context = MonthlyCalendarViewLogic.DayContext(
             date: yesterday,
@@ -478,14 +478,28 @@ struct MonthlyCalendarViewLogicTests {
         )
 
         let color = MonthlyCalendarViewLogic.backgroundColor(for: context)
-        #expect(color == CardDesign.progressRed.opacity(0.6))
+        #expect(color == CardDesign.progressCoral)
     }
 
-    @Test("Background color at 30% - should be red")
+    @Test("Background color at 30% - should be coral")
     func backgroundColorAt30Percent() {
         let context = MonthlyCalendarViewLogic.DayContext(
             date: yesterday,
             completion: 0.3,
+            today: today,
+            currentMonth: currentMonth,
+            calendar: calendar
+        )
+
+        let color = MonthlyCalendarViewLogic.backgroundColor(for: context)
+        #expect(color == CardDesign.progressCoral)
+    }
+
+    @Test("Background color at 20% - should be muted red")
+    func backgroundColorAt20Percent() {
+        let context = MonthlyCalendarViewLogic.DayContext(
+            date: yesterday,
+            completion: 0.2,
             today: today,
             currentMonth: currentMonth,
             calendar: calendar

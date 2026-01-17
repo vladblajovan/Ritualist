@@ -30,6 +30,7 @@ struct PersonalizationSettingsView: View {
                     }
                 }
                 .onChange(of: gender) { _, newValue in
+                    HapticFeedbackService.shared.trigger(.selection)
                     // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
                     Task { @MainActor in
                         await vm.updateGender(newValue)
@@ -43,6 +44,7 @@ struct PersonalizationSettingsView: View {
                     }
                 }
                 .onChange(of: ageGroup) { _, newValue in
+                    HapticFeedbackService.shared.trigger(.selection)
                     // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
                     Task { @MainActor in
                         await vm.updateAgeGroup(newValue)

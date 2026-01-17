@@ -9,12 +9,13 @@ extension Container {
     // MARK: - Personality Analysis Use Cases
     
     var analyzePersonalityUseCase: Factory<AnalyzePersonalityUseCase> {
-        self { 
+        self {
             DefaultAnalyzePersonalityUseCase(
                 personalityService: self.personalityAnalysisService(),
                 thresholdValidator: self.dataThresholdValidator(),
-                repository: self.personalityAnalysisRepository()
-            ) 
+                repository: self.personalityAnalysisRepository(),
+                timezoneService: self.timezoneService()
+            )
         }
     }
     
@@ -82,6 +83,24 @@ extension Container {
     
     var forceManualAnalysisUseCase: Factory<ForceManualAnalysisUseCase> {
         self { DefaultForceManualAnalysisUseCase(scheduler: self.personalityAnalysisScheduler()) }
+    }
+
+    var markAnalysisAsSeenUseCase: Factory<MarkAnalysisAsSeenUseCase> {
+        self { DefaultMarkAnalysisAsSeenUseCase(userDefaults: self.userDefaultsService()) }
+    }
+
+    var getLastSeenAnalysisDateUseCase: Factory<GetLastSeenAnalysisDateUseCase> {
+        self { DefaultGetLastSeenAnalysisDateUseCase(userDefaults: self.userDefaultsService()) }
+    }
+
+    var triggerAppropriateAnalysisUseCase: Factory<TriggerAppropriateAnalysisUseCase> {
+        self {
+            DefaultTriggerAppropriateAnalysisUseCase(
+                getAnalysisPreferencesUseCase: self.getAnalysisPreferencesUseCase(),
+                triggerAnalysisCheckUseCase: self.triggerAnalysisCheckUseCase(),
+                forceManualAnalysisUseCase: self.forceManualAnalysisUseCase()
+            )
+        }
     }
 
     // MARK: - Personality Analysis Data Use Cases

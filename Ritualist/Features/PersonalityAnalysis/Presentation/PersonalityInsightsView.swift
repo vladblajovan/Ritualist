@@ -7,12 +7,11 @@
 
 import SwiftUI
 import FactoryKit
-import UserNotifications
 import RitualistCore
 
 /// Main view for displaying personality insights in Settings
 public struct PersonalityInsightsView: View {
-    
+
     @State private var viewModel: PersonalityInsightsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showingPrivacy = false
@@ -95,10 +94,6 @@ public struct PersonalityInsightsView: View {
         .scrollContentBackground(.hidden)
         .task {
             await viewModel.loadPersonalityInsights()
-        }
-        .onAppear {
-            // Clear any personality analysis notification badges when user opens insights
-            UNUserNotificationCenter.current().setBadgeCount(0)
         }
         .fullScreenCover(isPresented: $showingPrivacy) {
             SettingsView()
@@ -200,6 +195,7 @@ private struct SettingsView: View {
                     Toggle("Enable Analysis", isOn: $isEnabled)
                         .disabled(isToggling)
                         .onChange(of: isEnabled) { _, newValue in
+                            HapticFeedbackService.shared.trigger(.selection)
                             Task {
                                 isToggling = true
                                 await viewModel.setAnalysisEnabled(newValue)
@@ -257,6 +253,15 @@ private struct SettingsView: View {
                     hasLoaded = true
                 }
             }
+            // Toast for save errors
+            .toast(item: .init(
+                get: { viewModel.preferenceSaveError },
+                set: { _ in viewModel.clearPreferenceSaveError() }
+            )) { errorMessage in
+                ToastView.error(errorMessage) {
+                    viewModel.clearPreferenceSaveError()
+                }
+            }
         }
     }
 
@@ -276,7 +281,10 @@ private struct SettingsView: View {
             analysisFrequency: analysisFrequency
         )
         await viewModel.savePreferences(updated)
-        dismiss()
+        // Only dismiss if save was successful (no error set)
+        if viewModel.preferenceSaveError == nil {
+            dismiss()
+        }
     }
 }
 
@@ -284,13 +292,26 @@ private struct PersonalityProfileView: View {
     let profile: PersonalityProfile
     @State private var showingConfidenceInfo = false
     @Injected(\.settingsViewModel) private var settingsVM
+    @Injected(\.personalityInsightsViewModel) private var insightsVM
+    @Injected(\.notificationService) private var notificationService
 
     // Avatar sizing (larger than header avatar)
     private let avatarSize: CGFloat = 72
 
+    // Task reference for banner dismissal to enable proper cancellation
+    @State private var bannerDismissTask: Task<Void, Never>?
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                // New Analysis Banner (dismissible)
+                // Capture value to avoid re-evaluation during render
+                let showBanner = insightsVM.hasUnseenAnalysis
+                if showBanner {
+                    newAnalysisBanner
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
                 dominantTraitSection
 
                 insightsSection
@@ -300,6 +321,7 @@ private struct PersonalityProfileView: View {
                 analysisDetailsSection
             }
             .padding()
+            .animation(.easeOut(duration: 0.2), value: insightsVM.hasUnseenAnalysis)
         }
         .task {
             // Ensure profile is loaded for avatar display
@@ -466,9 +488,9 @@ private struct PersonalityProfileView: View {
 
     private var personalityInsights: [String] {
         var insights: [String] = []
-        
+
         let topTraits = profile.traitsByScore.prefix(3)
-        
+
         for (trait, score) in topTraits where score > 0.6 {
                 switch trait {
                 case .openness:
@@ -483,12 +505,80 @@ private struct PersonalityProfileView: View {
                     insights.append("Focus on stress-reduction and mindfulness practices")
                 }
         }
-        
+
         if insights.isEmpty {
             insights.append("Your balanced personality allows flexibility in habit choices")
         }
-        
+
         return insights
+    }
+
+    // MARK: - New Analysis Banner
+
+    private var newAnalysisBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundStyle(.linearGradient(
+                    colors: [.purple, .blue],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("New Analysis Available")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text("Your personality insights have been updated")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                // Store task reference for proper lifecycle management
+                bannerDismissTask?.cancel()
+                bannerDismissTask = Task { @MainActor in
+                    defer { bannerDismissTask = nil }
+                    await insightsVM.markAnalysisAsSeen()
+                    // Clear personality notifications only after user acknowledges the new analysis
+                    await notificationService.clearPersonalityNotifications()
+                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.secondary.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .onDisappear {
+            bannerDismissTask?.cancel()
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.linearGradient(
+                    colors: [.purple.opacity(0.08), .blue.opacity(0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.linearGradient(
+                            colors: [.purple.opacity(0.2), .blue.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ), lineWidth: 1)
+                )
+        )
+        .transition(.asymmetric(
+            insertion: .scale(scale: 0.95).combined(with: .opacity),
+            removal: .scale(scale: 0.95).combined(with: .opacity)
+        ))
     }
 }
 

@@ -44,9 +44,9 @@ public final class PersonalityInsightsCardViewModel {
 
     @ObservationIgnored @Injected(\.getPersonalityProfileUseCase) private var getPersonalityProfileUseCase
     @ObservationIgnored @Injected(\.getPersonalityInsightsUseCase) private var getPersonalityInsightsUseCase
-    @ObservationIgnored @Injected(\.updatePersonalityAnalysisUseCase) private var updatePersonalityAnalysisUseCase
     @ObservationIgnored @Injected(\.validateAnalysisDataUseCase) private var validateAnalysisDataUseCase
     @ObservationIgnored @Injected(\.isPersonalityAnalysisEnabledUseCase) private var isPersonalityAnalysisEnabledUseCase
+    @ObservationIgnored @Injected(\.triggerAppropriateAnalysisUseCase) private var triggerAppropriateAnalysisUseCase
     @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     @ObservationIgnored @Injected(\.personalityDeepLinkCoordinator) private var personalityDeepLinkCoordinator
     @ObservationIgnored @Injected(\.getCurrentUserProfile) private var getCurrentUserProfile
@@ -160,13 +160,11 @@ public final class PersonalityInsightsCardViewModel {
         var profile = try await getPersonalityProfileUseCase.execute(for: userId)
 
         if isPersonalityDataSufficient && profile == nil {
-            do {
-                profile = try await updatePersonalityAnalysisUseCase.execute(for: userId)
-            } catch {
-                logger.log("Failed to create personality analysis: \(error.localizedDescription)", level: .error, category: .dataIntegrity)
-                personalityInsights = []
-                dominantPersonalityTrait = nil
-            }
+            // Trigger analysis through scheduler - ensures notification is sent
+            // Uses centralized UseCase that handles manual vs automatic frequency
+            await triggerAppropriateAnalysisUseCase.execute(for: userId)
+            // Reload the generated profile
+            profile = try await getPersonalityProfileUseCase.execute(for: userId)
         }
         return profile
     }

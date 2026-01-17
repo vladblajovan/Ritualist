@@ -383,7 +383,10 @@ private struct TriggerChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            HapticFeedbackService.shared.trigger(.selection)
+            action()
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))
@@ -436,7 +439,10 @@ private struct FrequencyChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            HapticFeedbackService.shared.trigger(.selection)
+            action()
+        } label: {
             Text(preset.shortName)
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 16)

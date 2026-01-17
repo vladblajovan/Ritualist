@@ -171,12 +171,15 @@ extension Container {
                 getAnalysisPreferencesUseCase: self.getAnalysisPreferencesUseCase(),
                 saveAnalysisPreferencesUseCase: self.saveAnalysisPreferencesUseCase(),
                 deletePersonalityDataUseCase: self.deletePersonalityDataUseCase(),
+                markAnalysisAsSeenUseCase: self.markAnalysisAsSeenUseCase(),
+                getLastSeenAnalysisDateUseCase: self.getLastSeenAnalysisDateUseCase(),
                 startAnalysisSchedulingUseCase: self.startAnalysisSchedulingUseCase(),
                 updateAnalysisSchedulingUseCase: self.updateAnalysisSchedulingUseCase(),
                 getNextScheduledAnalysisUseCase: self.getNextScheduledAnalysisUseCase(),
+                triggerAppropriateAnalysisUseCase: self.triggerAppropriateAnalysisUseCase(),
                 triggerAnalysisCheckUseCase: self.triggerAnalysisCheckUseCase(),
-                forceManualAnalysisUseCase: self.forceManualAnalysisUseCase(),
                 loadProfile: self.loadProfile(),
+                userDefaults: self.userDefaultsService(),
                 logger: self.debugLogger()
             )
         }

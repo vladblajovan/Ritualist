@@ -316,7 +316,6 @@ struct CachedLoadProfileTests {
     "CacheAwareSaveProfile Tests",
     .tags(.cache, .useCase, .businessLogic)
 )
-@MainActor
 struct CacheAwareSaveProfileTests {
 
     @Test("Save updates cache with new profile")

@@ -22,10 +22,12 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     private let logger: DebugLogger
     
     // MARK: - State
-    
+
     private var scheduledUsers: Set<UUID> = []
     private var lastAnalysisDates: [UUID: Date] = [:]
     private var lastDataHashes: [UUID: String] = [:]
+    /// Tracks users with in-flight analysis to prevent duplicate concurrent triggers
+    private var analysisInProgress: Set<UUID> = []
     
     // MARK: - Constants
     
@@ -51,21 +53,56 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
         self.errorHandler = errorHandler
         self.logger = logger
 
-        Task { await self.loadSchedulerState() }
+        // Load persisted state synchronously during init to avoid race conditions.
+        // UserDefaults access is synchronous and fast, so this doesn't block significantly.
+        // This ensures state is fully loaded before any methods can be called.
+        let decoder = JSONDecoder()
+
+        if let scheduledData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
+           let scheduledArray = try? decoder.decode([UUID].self, from: scheduledData) {
+            self.scheduledUsers = Set(scheduledArray)
+        }
+
+        if let datesData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
+           let dates = try? decoder.decode([UUID: Date].self, from: datesData) {
+            self.lastAnalysisDates = dates
+        }
+
+        if let hashData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
+           let hashes = try? decoder.decode([UUID: String].self, from: hashData) {
+            self.lastDataHashes = hashes
+        }
     }
     
     // MARK: - Public Methods
     
     public func startScheduling(for userId: UUID) async {
         guard !scheduledUsers.contains(userId) else { return }
-        
+
         do {
             // Get user preferences
             guard let preferences = try await personalityRepository.getAnalysisPreferences(for: userId),
                   preferences.isCurrentlyActive else {
                 return
             }
-            
+
+            // Check if user has sufficient data before scheduling notifications
+            // This prevents misleading "checking your habits" notifications when analysis can't run
+            let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+            guard eligibility.isEligible else {
+                logger.log(
+                    "Skipping personality analysis scheduling - user not eligible",
+                    level: .info,
+                    category: .personality,
+                    metadata: [
+                        "userId": userId.uuidString,
+                        "progress": eligibility.overallProgress,
+                        "missingRequirements": eligibility.missingRequirements.count
+                    ]
+                )
+                return
+            }
+
             scheduledUsers.insert(userId)
             await scheduleNextAnalysis(for: userId, preferences: preferences)
             saveSchedulerState()
@@ -92,10 +129,14 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
             guard try await shouldRunAnalysis(for: userId) else {
                 return
             }
-            
+
             await performAnalysis(for: userId)
         } catch {
-            // Error during analysis check
+            logger.log(
+                "Failed to trigger analysis check for user \(userId): \(error.localizedDescription)",
+                level: .error,
+                category: .personality
+            )
         }
     }
     
@@ -152,16 +193,36 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     
     public func updateScheduling(for userId: UUID, preferences: PersonalityAnalysisPreferences) async {
         if preferences.isCurrentlyActive {
-            // Update existing scheduling or start new
-            await scheduleNextAnalysis(for: userId, preferences: preferences)
-            if !scheduledUsers.contains(userId) {
-                scheduledUsers.insert(userId)
+            // Check eligibility before scheduling to avoid misleading notifications
+            do {
+                let eligibility = try await validateAnalysisDataUseCase.execute(for: userId)
+                if eligibility.isEligible {
+                    await scheduleNextAnalysis(for: userId, preferences: preferences)
+                    if !scheduledUsers.contains(userId) {
+                        scheduledUsers.insert(userId)
+                    }
+                } else {
+                    // Not eligible - ensure no stale notifications remain
+                    await notificationService.cancelPersonalityAnalysis(userId: userId)
+                    scheduledUsers.remove(userId)
+                    logger.log(
+                        "Skipping personality scheduling update - user not eligible",
+                        level: .info,
+                        category: .personality
+                    )
+                }
+            } catch {
+                logger.log(
+                    "Failed to check eligibility during scheduling update: \(error.localizedDescription)",
+                    level: .error,
+                    category: .personality
+                )
             }
         } else {
             // Stop scheduling if disabled
             await stopScheduling(for: userId)
         }
-        
+
         saveSchedulerState()
     }
     
@@ -272,25 +333,30 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     }
     
     private func performAnalysis(for userId: UUID) async {
+        // Prevent duplicate concurrent analysis using atomic insert
+        // insert() returns (inserted: Bool, memberAfterInsert: UUID)
+        // If inserted is false, element was already present
+        guard analysisInProgress.insert(userId).inserted else {
+            logger.log("Analysis already in progress for user \(userId), skipping duplicate trigger", level: .info, category: .personality)
+            return
+        }
+        defer { analysisInProgress.remove(userId) }
+
         do {
-            
+            // Profile is saved internally by analyzePersonalityUseCase.execute()
             let profile = try await analyzePersonalityUseCase.execute(for: userId)
-            
-            // CRITICAL: Save the profile to the database!
-            try await personalityRepository.savePersonalityProfile(profile)
-            // Personality profile saved to database
-            
+
             lastAnalysisDates[userId] = Date()
             saveSchedulerState()
-            
+
             // Send rich notification about the completed analysis
             try await notificationService.sendPersonalityAnalysisCompleted(userId: userId, profile: profile)
-            
+
             // Schedule next analysis
             if let preferences = try await personalityRepository.getAnalysisPreferences(for: userId) {
                 await scheduleNextAnalysis(for: userId, preferences: preferences)
             }
-            
+
         } catch {
             // Failed automatic personality analysis - fail silently
             // No notifications for insufficient data scenarios
@@ -298,39 +364,53 @@ public actor PersonalityAnalysisScheduler: PersonalityAnalysisSchedulerProtocol 
     }
     
     // MARK: - Persistence
-    
+
+    /// Saves scheduler state to UserDefaults asynchronously to avoid blocking the actor.
+    /// Logs errors but does not throw, as persistence failures should not block scheduling operations.
     private func saveSchedulerState() {
-        let encoder = JSONEncoder()
+        // Capture state snapshot within actor isolation
+        let usersSnapshot = Array(scheduledUsers)
+        let datesSnapshot = lastAnalysisDates
+        let hashesSnapshot = lastDataHashes
 
-        if let scheduledData = try? encoder.encode(Array(scheduledUsers)) {
-            userDefaults.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
-        }
+        // Capture dependencies for use outside actor
+        let defaults = userDefaults
+        let log = logger
 
-        if let datesData = try? encoder.encode(lastAnalysisDates) {
-            userDefaults.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
-        }
+        // Perform encoding and persistence off the actor to avoid blocking
+        Task.detached(priority: .utility) {
+            let encoder = JSONEncoder()
+            var persistenceErrors: [String] = []
 
-        if let hashData = try? encoder.encode(lastDataHashes) {
-            userDefaults.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
+            do {
+                let scheduledData = try encoder.encode(usersSnapshot)
+                defaults.set(scheduledData, forKey: UserDefaultsKeys.personalitySchedulerUsers)
+            } catch {
+                persistenceErrors.append("scheduledUsers: \(error.localizedDescription)")
+            }
+
+            do {
+                let datesData = try encoder.encode(datesSnapshot)
+                defaults.set(datesData, forKey: UserDefaultsKeys.personalitySchedulerDates)
+            } catch {
+                persistenceErrors.append("lastAnalysisDates: \(error.localizedDescription)")
+            }
+
+            do {
+                let hashData = try encoder.encode(hashesSnapshot)
+                defaults.set(hashData, forKey: UserDefaultsKeys.personalitySchedulerHashes)
+            } catch {
+                persistenceErrors.append("lastDataHashes: \(error.localizedDescription)")
+            }
+
+            if !persistenceErrors.isEmpty {
+                log.log(
+                    "Failed to persist scheduler state: \(persistenceErrors.joined(separator: "; "))",
+                    level: .error,
+                    category: .personality
+                )
+            }
         }
     }
 
-    private func loadSchedulerState() {
-        let decoder = JSONDecoder()
-
-        if let scheduledData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerUsers),
-           let scheduledArray = try? decoder.decode([UUID].self, from: scheduledData) {
-            scheduledUsers = Set(scheduledArray)
-        }
-
-        if let datesData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerDates),
-           let dates = try? decoder.decode([UUID: Date].self, from: datesData) {
-            lastAnalysisDates = dates
-        }
-
-        if let hashData = userDefaults.data(forKey: UserDefaultsKeys.personalitySchedulerHashes),
-           let hashes = try? decoder.decode([UUID: String].self, from: hashData) {
-            lastDataHashes = hashes
-        }
-    }
 }

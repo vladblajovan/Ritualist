@@ -30,6 +30,7 @@ public struct ReminderSection: View {
             }
 
             Button {
+                HapticFeedbackService.shared.trigger(.light)
                 if vm.isPremiumUser {
                     showingAddReminder = true
                 } else {
@@ -73,6 +74,7 @@ public struct ReminderTimeRow: View {
             Spacer()
 
             Button {
+                HapticFeedbackService.shared.trigger(.medium)
                 onDelete()
             } label: {
                 Image(systemName: "trash")

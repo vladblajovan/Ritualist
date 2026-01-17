@@ -35,19 +35,8 @@ public enum ProgressColorViewLogic {
 
     /// Computes CardDesign-based progress color (used in MonthlyCalendar and other components)
     /// - Parameter completionRate: Completion percentage (0.0 to 1.0)
-    /// - Returns: CardDesign color representing progress level
-    ///
-    /// This variant uses CardDesign tokens for consistency with calendar components
+    /// - Returns: CardDesign color representing progress level (zero → secondaryBackground)
     public static func cardDesignColor(for completionRate: Double) -> Color {
-        switch completionRate {
-        case 1.0:
-            return CardDesign.progressGreen
-        case highCompletionThreshold..<1.0:
-            return CardDesign.progressOrange
-        case mediumCompletionThreshold..<highCompletionThreshold:
-            return CardDesign.progressRed.opacity(0.6)
-        default:
-            return CardDesign.secondaryBackground
-        }
+        CardDesign.progressColor(for: completionRate)
     }
 }

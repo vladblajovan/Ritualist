@@ -23,8 +23,12 @@ public protocol NotificationService: Sendable {
     func requestAuthorizationIfNeeded() async throws -> Bool
     func checkAuthorizationStatus() async -> Bool
     func schedule(for habitID: UUID, times: [ReminderTime]) async throws
+
+    /// - Important: Deprecated. Use `DailyNotificationSchedulerService.rescheduleAllHabitNotifications()` instead.
+    /// This method scheduled notifications individually without proper badge coordination.
+    /// All habit notification scheduling should now go through the bulk scheduler for consistent badge numbering.
     func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws
-    func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws
+    func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int, habitCategory: String?, currentStreak: Int, isWeekend: Bool) async throws
     func scheduleRichReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, times: [ReminderTime]) async throws
     func schedulePersonalityTailoredReminders(for habitID: UUID, habitName: String, habitCategory: String?, currentStreak: Int, personalityProfile: PersonalityProfile, times: [ReminderTime]) async throws
     func sendStreakMilestone(for habitID: UUID, habitName: String, streakDays: Int) async throws
@@ -48,6 +52,10 @@ public protocol NotificationService: Sendable {
     // Badge management
     func updateBadgeCount() async
     func decrementBadge() async
+
+    /// Clears personality analysis notifications from delivered list and updates badge count
+    /// Call this when user views personality insights to clear those specific notifications
+    func clearPersonalityNotifications() async
 
     // Fired notification tracking (prevents duplicates on app restart)
     func syncFiredNotificationsFromDelivered() async
@@ -85,6 +93,39 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     private let userDefaultsService: UserDefaultsService
     private let timezoneService: TimezoneService
     private let logger: DebugLogger
+
+    // Badge count cache to avoid frequent deliveredNotifications() API calls
+    // Cache is simple (not thread-safe) - worst case is an extra API call, which is acceptable
+    private var cachedDeliveredNotifications: [UNNotification]?
+    private var cacheTimestamp: Date?
+    private static let cacheValidityDuration: TimeInterval = 5.0
+
+    /// Get delivered notifications with caching to reduce API calls
+    /// Cache is invalidated after 5 seconds or when explicitly cleared
+    private func getDeliveredNotificationsCached(bypassCache: Bool = false) async -> [UNNotification] {
+        let center = UNUserNotificationCenter.current()
+
+        // Check if cache is valid
+        if !bypassCache,
+           let cached = cachedDeliveredNotifications,
+           let timestamp = cacheTimestamp,
+           Date().timeIntervalSince(timestamp) < Self.cacheValidityDuration {
+            return cached
+        }
+
+        // Fetch fresh data and update cache
+        let delivered = await center.deliveredNotifications()
+        cachedDeliveredNotifications = delivered
+        cacheTimestamp = Date()
+        return delivered
+    }
+
+    /// Invalidate the delivered notifications cache
+    /// Call after removing notifications to ensure fresh data on next read
+    private func invalidateDeliveredNotificationsCache() {
+        cachedDeliveredNotifications = nil
+        cacheTimestamp = nil
+    }
 
     // Track catch-up notifications to prevent duplicate delivery on repeated foreground events
     // Persisted to UserDefaults to survive app termination/relaunch
@@ -169,22 +210,23 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
     /// Sync fired notification state from delivered notifications
     /// Call this on app launch to catch notifications that fired in background
     public func syncFiredNotificationsFromDelivered() async {
-        let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
+        // Bypass cache on app launch to ensure fresh data, but populate cache for subsequent calls
+        let delivered = await getDeliveredNotificationsCached(bypassCache: true)
+
+        // Helper to check if notification is habit-related
+        func isHabitNotification(_ id: String) -> Bool {
+            id.hasPrefix("today_") || id.hasPrefix("rich_") || id.hasPrefix("tailored_") || id.contains("-location-")
+        }
 
         for notification in delivered {
             let id = notification.request.identifier
-            // Only track habit-related notifications
-            if id.hasPrefix("today_") || id.hasPrefix("rich_") || id.hasPrefix("tailored_") {
+            // Only track habit-related notifications (including location-triggered)
+            if isHabitNotification(id) {
                 markNotificationFired(notificationId: id)
             }
         }
 
-        let count = delivered.filter {
-            $0.request.identifier.hasPrefix("today_") ||
-            $0.request.identifier.hasPrefix("rich_") ||
-            $0.request.identifier.hasPrefix("tailored_")
-        }.count
+        let count = delivered.filter { isHabitNotification($0.request.identifier) }.count
 
         if count > 0 {
             logger.log(
@@ -262,10 +304,24 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         }
     }
     
+    /// - Important: Deprecated. Use `DailyNotificationSchedulerService.rescheduleAllHabitNotifications()` instead.
+    /// This method scheduled notifications individually without proper badge coordination across all habits.
     public func scheduleWithActions(for habitID: UUID, habitName: String, habitKind: HabitKind, times: [ReminderTime]) async throws {
-        // Schedule without badge (used when not doing bulk scheduling with badge ordering)
+        // Calculate badge baseline, then increment for each notification
+        var nextBadge = await calculateExpectedBadgeCount()
         for time in times {
-            try await scheduleSingleNotification(for: habitID, habitName: habitName, habitKind: habitKind, time: time, badgeNumber: 0)
+            // Pass nil/0/false for rich content params - this deprecated method doesn't support them
+            try await scheduleSingleNotification(
+                for: habitID,
+                habitName: habitName,
+                habitKind: habitKind,
+                time: time,
+                badgeNumber: nextBadge,
+                habitCategory: nil,
+                currentStreak: 0,
+                isWeekend: false
+            )
+            nextBadge += 1
         }
 
         // Track notification scheduling
@@ -276,7 +332,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
         ))
     }
 
-    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int) async throws {
+    public func scheduleSingleNotification(for habitID: UUID, habitName: String, habitKind: HabitKind, time: ReminderTime, badgeNumber: Int, habitCategory: String? = nil, currentStreak: Int = 0, isWeekend: Bool = false) async throws {
         let center = UNUserNotificationCenter.current()
         // Notifications should use local timezone - users want reminders at "7 AM local time"
         let calendar = CalendarUtils.currentLocalCalendar
@@ -296,35 +352,28 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
         let secondOffset = Self.secondOffset(for: habitID)
 
-        let content = UNMutableNotificationContent()
+        // Use rich content generator for contextual, motivational notifications
+        let content = HabitReminderNotificationContentGenerator.generateContent(
+            for: habitID,
+            habitName: habitName,
+            reminderTime: time,
+            habitCategory: habitCategory,
+            currentStreak: currentStreak,
+            isWeekend: isWeekend
+        )
 
-        // Customize title and body based on habit type
-        switch habitKind {
-        case .binary:
-            content.title = "Time to complete: \(habitName) ✓"
-            content.body = "Quick tap to mark as done!"
-        case .numeric:
-            content.title = "Log progress: \(habitName)"
-            content.body = "Time to track your progress!"
-        }
+        // Set badge from caller for correct incrementing across batch scheduling
+        // willPresent recalculates for foreground; updateBadgeCount corrects on app activation
+        content.badge = NSNumber(value: badgeNumber)
 
-        content.sound = .default
-        if badgeNumber > 0 {
-            content.badge = NSNumber(value: badgeNumber)
-        }
-
-        // Use different category based on habit type
+        // Use different category based on habit type for actionable notifications
         content.categoryIdentifier = habitKind == .binary ?
             Self.binaryHabitReminderCategory : Self.numericHabitReminderCategory
 
-        // Store habit information in userInfo for action handling
-        content.userInfo = [
-            "habitId": habitID.uuidString,
-            "habitName": habitName,
-            "habitKind": habitKind == .binary ? "binary" : "numeric",
-            "reminderHour": time.hour,
-            "reminderMinute": time.minute
-        ]
+        // Add habit kind to userInfo (content generator doesn't include this)
+        var userInfo = content.userInfo
+        userInfo["habitKind"] = habitKind == .binary ? "binary" : "numeric"
+        content.userInfo = userInfo
 
         // Create notification time for today only (non-repeating)
         // Add second offset to prevent multiple habits at same time from coalescing
@@ -348,7 +397,6 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                 metadata: [
                     "habit": habitName,
                     "time": "\(time.hour):\(String(format: "%02d", time.minute))",
-                    "badge": badgeNumber,
                     "id": id
                 ]
             )
@@ -475,6 +523,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
         let secondOffset = Self.secondOffset(for: habitID)
 
+        // Calculate badge baseline, then increment for each notification
+        var nextBadge = await calculateExpectedBadgeCount()
+
         for time in times {
             // Generate rich notification content
             let content = HabitReminderNotificationContentGenerator.generateContent(
@@ -485,6 +536,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                 currentStreak: currentStreak,
                 isWeekend: isWeekend
             )
+
+            // Set badge for background notifications (willPresent recalculates for foreground)
+            content.badge = NSNumber(value: nextBadge)
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
@@ -512,6 +566,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                         "id": id
                     ]
                 )
+                nextBadge += 1
             }
         }
 
@@ -552,6 +607,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
         let secondOffset = Self.secondOffset(for: habitID)
 
+        // Calculate badge baseline, then increment for each notification
+        var nextBadge = await calculateExpectedBadgeCount()
+
         for time in times {
             // Generate personality-tailored notification content
             let content = PersonalityTailoredNotificationContentGenerator.generateTailoredContent(
@@ -563,6 +621,9 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                 currentStreak: currentStreak,
                 isWeekend: isWeekend
             )
+
+            // Set badge for background notifications (willPresent recalculates for foreground)
+            content.badge = NSNumber(value: nextBadge)
 
             // Create notification time for today only (non-repeating)
             // This ensures notifications are cancelled when habit is completed
@@ -590,6 +651,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
                         "id": id
                     ]
                 )
+                nextBadge += 1
             }
         }
 
@@ -629,25 +691,22 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
             metadata: ["pending_count": pending.count]
         )
         
-        // Log all pending notifications for this habit to debug
-        let habitNotifications = pending.filter { notification in
-            let id = notification.identifier
-            let matches = id.hasPrefix(prefix) ||
-                         id.hasPrefix("rich_\(prefix)") ||
-                         id.hasPrefix("tailored_\(prefix)") ||
-                         id.hasPrefix("today_\(prefix)") ||
-                         id.hasPrefix("streak_milestone_\(prefix)")
-            return matches
-        }
-
-        // Cancel all notifications that match the habit ID (including rich_, tailored_, today_, and streak_ prefixed ones)
-        let ids = pending.map { $0.identifier }.filter { id in
+        // Helper to check if notification ID belongs to this habit
+        // Location notifications use pattern: "{habitID}-location-{timestamp}"
+        func matchesHabit(_ id: String) -> Bool {
             id.hasPrefix(prefix) ||
             id.hasPrefix("rich_\(prefix)") ||
             id.hasPrefix("tailored_\(prefix)") ||
             id.hasPrefix("today_\(prefix)") ||
-            id.hasPrefix("streak_milestone_\(prefix)")
+            id.hasPrefix("streak_milestone_\(prefix)") ||
+            (id.hasPrefix(prefix) && id.contains("-location-"))
         }
+
+        // Log all pending notifications for this habit to debug
+        let habitNotifications = pending.filter { matchesHabit($0.identifier) }
+
+        // Cancel all notifications that match the habit ID (including rich_, tailored_, today_, streak_, and location prefixed ones)
+        let ids = pending.map { $0.identifier }.filter { matchesHabit($0) }
 
         logger.log(
             "🗑️ Cancelling notifications",
@@ -673,14 +732,7 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
         // Verify cancellation by checking pending notifications again
         let pendingAfter = await center.pendingNotificationRequests()
-        let remainingHabitNotifications = pendingAfter.filter { notification in
-            let id = notification.identifier
-            return id.hasPrefix(prefix) ||
-                   id.hasPrefix("rich_\(prefix)") ||
-                   id.hasPrefix("tailored_\(prefix)") ||
-                   id.hasPrefix("today_\(prefix)") ||
-                   id.hasPrefix("streak_milestone_\(prefix)")
-        }
+        let remainingHabitNotifications = pendingAfter.filter { matchesHabit($0.identifier) }
 
         if !remainingHabitNotifications.isEmpty {
             logger.log(
@@ -866,26 +918,35 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
     // MARK: - Badge Management
 
+    /// Calculates the expected badge count for a new notification being scheduled.
+    /// Uses current delivered count + pending habit notifications scheduled before this time.
+    /// This provides a reasonable estimate for background notifications where willPresent isn't called.
+    private func calculateExpectedBadgeCount() async -> Int {
+        let delivered = await getDeliveredNotificationsCached()
+        let currentBadge = delivered.filter(isHabitNotificationForBadge).count
+        return currentBadge + 1
+    }
+
+    /// Determines if a notification should be counted toward the app badge.
+    /// Habit notifications ARE counted; catch-up and personality notifications are NOT.
+    private func isHabitNotificationForBadge(_ notification: UNNotification) -> Bool {
+        let id = notification.request.identifier
+        let userInfo = notification.request.content.userInfo
+        let isCatchUp = userInfo["isCatchUp"] as? Bool ?? id.hasPrefix("catchup_")
+
+        // Catch-up notifications fire in foreground and may not be interacted with
+        guard !isCatchUp else { return false }
+
+        return id.hasPrefix("today_") ||
+               id.hasPrefix("rich_") ||
+               id.hasPrefix("tailored_") ||
+               userInfo["habitId"] != nil
+    }
+
     /// Updates the app badge to show the count of delivered (unread) habit notifications
     public func updateBadgeCount() async {
-        let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
-
-        // Count only habit-related notifications (not personality analysis, catch-up, etc.)
-        // Catch-up notifications are excluded because they fire in foreground and may not be interacted with
-        let habitNotificationCount = delivered.filter { notification in
-            let id = notification.request.identifier
-            let userInfo = notification.request.content.userInfo
-            let isCatchUp = userInfo["isCatchUp"] as? Bool ?? id.hasPrefix("catchup_")
-
-            // Exclude catch-up notifications from badge count
-            guard !isCatchUp else { return false }
-
-            return id.hasPrefix("today_") ||
-                   id.hasPrefix("rich_") ||
-                   id.hasPrefix("tailored_") ||
-                   userInfo["habitId"] != nil
-        }.count
+        let delivered = await getDeliveredNotificationsCached()
+        let habitNotificationCount = delivered.filter(isHabitNotificationForBadge).count
 
         try? await UNUserNotificationCenter.current().setBadgeCount(habitNotificationCount)
 
@@ -899,28 +960,16 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
 
     /// Decrements the badge count by 1 (minimum 0)
     public func decrementBadge() async {
-        let center = UNUserNotificationCenter.current()
-        let delivered = await center.deliveredNotifications()
-
-        // Count remaining habit notifications (excluding catch-up notifications)
-        let habitNotificationCount = delivered.filter { notification in
-            let id = notification.request.identifier
-            let userInfo = notification.request.content.userInfo
-            let isCatchUp = userInfo["isCatchUp"] as? Bool ?? id.hasPrefix("catchup_")
-
-            // Exclude catch-up notifications from badge count
-            guard !isCatchUp else { return false }
-
-            return id.hasPrefix("today_") ||
-                   id.hasPrefix("rich_") ||
-                   id.hasPrefix("tailored_") ||
-                   userInfo["habitId"] != nil
-        }.count
+        let delivered = await getDeliveredNotificationsCached()
+        let habitNotificationCount = delivered.filter(isHabitNotificationForBadge).count
 
         // Badge should reflect delivered notifications minus 1 (the one being handled)
         let newCount = max(0, habitNotificationCount - 1)
 
         try? await UNUserNotificationCenter.current().setBadgeCount(newCount)
+
+        // Invalidate cache since we're decrementing (notification was handled)
+        invalidateDeliveredNotificationsCache()
 
         logger.log(
             "🔢 Badge decremented",
@@ -928,6 +977,46 @@ public final class LocalNotificationService: NSObject, NotificationService, @unc
             category: .notifications,
             metadata: ["newCount": newCount]
         )
+    }
+
+    /// Clears personality-related notifications from delivered list and updates badge
+    /// This ensures only personality badges are cleared, not habit reminder badges
+    public func clearPersonalityNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await getDeliveredNotificationsCached()
+
+        // Find personality analysis notification IDs
+        // Personality notifications use identifiers like "personality_completed_<userId>"
+        // and categories from personalityAnalysisCategories
+        let personalityNotificationIds = delivered.compactMap { notification -> String? in
+            let id = notification.request.identifier
+            let category = notification.request.content.categoryIdentifier
+
+            // Check if it's a personality notification by ID prefix or category
+            if id.hasPrefix("personality_") || Self.personalityAnalysisCategories.contains(category) {
+                return id
+            }
+            return nil
+        }
+
+        // Remove only personality notifications from delivered list
+        if !personalityNotificationIds.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: personalityNotificationIds)
+
+            // Invalidate cache since delivered notifications changed
+            invalidateDeliveredNotificationsCache()
+
+            logger.log(
+                "🧠 Cleared personality notifications",
+                level: .debug,
+                category: .notifications,
+                metadata: ["count": personalityNotificationIds.count, "ids": personalityNotificationIds.joined(separator: ", ")]
+            )
+        }
+
+        // Update badge count based on remaining habit notifications
+        // This recalculates from scratch rather than clearing everything
+        await updateBadgeCount()
     }
 
     // MARK: - Private Helpers

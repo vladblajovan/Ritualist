@@ -3,19 +3,22 @@ import Foundation
 // MARK: - Personality Analysis Use Case Implementations
 
 public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
-    
+
     private let personalityService: PersonalityAnalysisService
     private let thresholdValidator: DataThresholdValidator
     private let repository: PersonalityAnalysisRepositoryProtocol
-    
+    private let timezoneService: TimezoneService
+
     public init(
         personalityService: PersonalityAnalysisService,
         thresholdValidator: DataThresholdValidator,
-        repository: PersonalityAnalysisRepositoryProtocol
+        repository: PersonalityAnalysisRepositoryProtocol,
+        timezoneService: TimezoneService
     ) {
         self.personalityService = personalityService
         self.thresholdValidator = thresholdValidator
         self.repository = repository
+        self.timezoneService = timezoneService
     }
     
     public func execute(for userId: UUID) async throws -> PersonalityProfile {
@@ -27,10 +30,14 @@ public final class DefaultAnalyzePersonalityUseCase: AnalyzePersonalityUseCase {
         
         // Business workflow: Get input data for analysis
         let input = try await repository.getHabitAnalysisInput(for: userId)
-        
+
+        // Get user's display timezone to ensure consistent date calculations
+        // This respects user preferences and handles travel scenarios correctly
+        let displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
         // Get enhanced completion statistics with schedule-aware calculations
         let endDate = Date()
-        let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: .current)
+        let startDate = CalendarUtils.addDaysLocal(-30, to: endDate, timezone: displayTimezone)
         let completionStats = try await repository.getHabitCompletionStats(for: userId, from: startDate, to: endDate)
         
         // Calculate personality scores using Service as utility - PASS completionStats!
@@ -493,6 +500,62 @@ public final class DefaultForceManualAnalysisUseCase: ForceManualAnalysisUseCase
 
     public func execute(for userId: UUID) async {
         await scheduler.forceManualAnalysis(for: userId)
+    }
+}
+
+public final class DefaultMarkAnalysisAsSeenUseCase: MarkAnalysisAsSeenUseCase {
+    private let userDefaults: UserDefaultsService
+
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
+
+    public func execute(analysisDate: Date) async {
+        userDefaults.set(analysisDate, forKey: UserDefaultsKeys.personalityLastSeenAnalysisDate)
+    }
+}
+
+public final class DefaultGetLastSeenAnalysisDateUseCase: GetLastSeenAnalysisDateUseCase {
+    private let userDefaults: UserDefaultsService
+
+    public init(userDefaults: UserDefaultsService = DefaultUserDefaultsService()) {
+        self.userDefaults = userDefaults
+    }
+
+    public func execute() async -> Date? {
+        userDefaults.object(forKey: UserDefaultsKeys.personalityLastSeenAnalysisDate) as? Date
+    }
+}
+
+/// Centralizes the manual vs automatic frequency logic for triggering analysis
+/// Fetches user preferences and calls the appropriate scheduler method
+public final class DefaultTriggerAppropriateAnalysisUseCase: TriggerAppropriateAnalysisUseCase {
+    private let getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase
+    private let triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase
+    private let forceManualAnalysisUseCase: ForceManualAnalysisUseCase
+
+    public init(
+        getAnalysisPreferencesUseCase: GetAnalysisPreferencesUseCase,
+        triggerAnalysisCheckUseCase: TriggerAnalysisCheckUseCase,
+        forceManualAnalysisUseCase: ForceManualAnalysisUseCase
+    ) {
+        self.getAnalysisPreferencesUseCase = getAnalysisPreferencesUseCase
+        self.triggerAnalysisCheckUseCase = triggerAnalysisCheckUseCase
+        self.forceManualAnalysisUseCase = forceManualAnalysisUseCase
+    }
+
+    public func execute(for userId: UUID) async {
+        do {
+            let preferences = try await getAnalysisPreferencesUseCase.execute(for: userId)
+            if let prefs = preferences, prefs.analysisFrequency == .manual {
+                await forceManualAnalysisUseCase.execute(for: userId)
+            } else {
+                await triggerAnalysisCheckUseCase.execute(for: userId)
+            }
+        } catch {
+            // If we can't fetch preferences, fall back to regular trigger
+            await triggerAnalysisCheckUseCase.execute(for: userId)
+        }
     }
 }
 

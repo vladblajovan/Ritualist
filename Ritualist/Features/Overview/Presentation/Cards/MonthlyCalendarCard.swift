@@ -175,51 +175,18 @@ struct MonthlyCalendarCard: View {
 
                         let circlePath = Circle().path(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
 
-                        // Today's date gets a prominent multi-layer glow effect
-                        if dayData.isToday {
-                            let glowColor = AppColors.brand
-
-                            // Outer soft glow (large, faint)
-                            let outerGlowRadius = radius + 6
-                            let outerGlowPath = Circle().path(in: CGRect(
-                                x: center.x - outerGlowRadius,
-                                y: center.y - outerGlowRadius,
-                                width: outerGlowRadius * 2,
-                                height: outerGlowRadius * 2
-                            ))
-                            context.fill(outerGlowPath, with: .color(glowColor.opacity(0.2)))
-
-                            // Middle glow (medium)
-                            let midGlowRadius = radius + 4
-                            let midGlowPath = Circle().path(in: CGRect(
-                                x: center.x - midGlowRadius,
-                                y: center.y - midGlowRadius,
-                                width: midGlowRadius * 2,
-                                height: midGlowRadius * 2
-                            ))
-                            context.fill(midGlowPath, with: .color(glowColor.opacity(0.35)))
-
-                            // Inner bright glow (tight, vibrant)
-                            let innerGlowRadius = radius + 2
-                            let innerGlowPath = Circle().path(in: CGRect(
-                                x: center.x - innerGlowRadius,
-                                y: center.y - innerGlowRadius,
-                                width: innerGlowRadius * 2,
-                                height: innerGlowRadius * 2
-                            ))
-                            context.fill(innerGlowPath, with: .color(glowColor.opacity(0.5)))
-                        }
-
                         // Fill the day circle
                         context.fill(circlePath, with: .color(dayData.bgColor.opacity(dayData.opacity)))
 
-                        // Selected date gets blue border
+                        // Selected date gets blue border (matches WeekDateSelector stroke width)
                         if dayData.isSelected {
-                            context.stroke(circlePath, with: .color(AppColors.brand), lineWidth: 2)
+                            context.stroke(circlePath, with: .color(AppColors.brand), lineWidth: 1.5)
                         }
 
+                        // Today uses bold font to differentiate
+                        let fontWeight: Font.Weight = dayData.isToday ? .bold : .medium
                         let text = Text("\(dayData.dayNumber)")
-                            .font(.system(size: metrics.fontSize, weight: .medium))
+                            .font(.system(size: metrics.fontSize, weight: fontWeight))
                             .foregroundColor(dayData.textColor.opacity(dayData.opacity))
                         context.draw(text, at: center, anchor: .center)
                     }
@@ -274,12 +241,13 @@ struct MonthlyCalendarCard: View {
         case 12, 1, 2: return "❄️"
         case 3, 4, 5: return "🌸"
         case 6, 7, 8: return "☀️"
+        case 9, 10, 11: return "🍂"
         default: return "🍂"
         }
     }
 
     private var weekdayHeaders: [String] {
-        DateUtils.orderedWeekdaySymbols(style: .veryShort)
+        DateUtils.orderedWeekdaySymbols(style: .short)
     }
 
     private func changeMonth(by value: Int) {

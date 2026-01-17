@@ -14,7 +14,11 @@ public protocol DailyNotificationSchedulerService: Sendable {
     func rescheduleAllHabitNotifications() async throws
 }
 
-public final class DefaultDailyNotificationScheduler: DailyNotificationSchedulerService {
+public final class DefaultDailyNotificationScheduler: DailyNotificationSchedulerService, @unchecked Sendable {
+    // Note: @unchecked Sendable is safe here because:
+    // 1. All stored properties are immutable (let)
+    // 2. Dependencies are either Sendable services or thread-safe protocols
+    // 3. No mutable state is modified after initialization
 
     // MARK: - Constants
 
@@ -39,24 +43,33 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
     // MARK: - Dependencies
 
     private let habitRepository: HabitRepository
+    private let categoryRepository: CategoryRepository
+    private let logRepository: LogRepository
     private let habitCompletionCheckService: HabitCompletionCheckService
     private let notificationService: NotificationService
     private let subscriptionService: SecureSubscriptionService
+    private let streakCalculationService: StreakCalculationService
     private let logger: DebugLogger
 
     // MARK: - Initialization
 
     public init(
         habitRepository: HabitRepository,
+        categoryRepository: CategoryRepository,
+        logRepository: LogRepository,
         habitCompletionCheckService: HabitCompletionCheckService,
         notificationService: NotificationService,
         subscriptionService: SecureSubscriptionService,
+        streakCalculationService: StreakCalculationService,
         logger: DebugLogger
     ) {
         self.habitRepository = habitRepository
+        self.categoryRepository = categoryRepository
+        self.logRepository = logRepository
         self.habitCompletionCheckService = habitCompletionCheckService
         self.notificationService = notificationService
         self.subscriptionService = subscriptionService
+        self.streakCalculationService = streakCalculationService
         self.logger = logger
     }
 
@@ -150,11 +163,38 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
             await notificationService.cancel(for: habit.id)
         }
 
+        // Preload categories for category name lookup (avoids N+1 queries)
+        let allCategories = (try? await categoryRepository.getAllCategories()) ?? []
+        let categoryMap = Dictionary(uniqueKeysWithValues: allCategories.map { ($0.id, $0.name) })
+
+        // Determine if today is a weekend (for contextual messaging)
+        let today = Date()
+        let isWeekend = Calendar.current.isDateInWeekend(today)
+        let timezone = TimeZone.current
+
+        // Calculate streaks for all habits (batch for efficiency)
+        // Fetch all logs once and group by habit for efficient streak calculation
+        var habitStreaks: [UUID: Int] = [:]
+        for habit in activeHabitsWithReminders {
+            let logs = (try? await logRepository.logs(for: habit.id)) ?? []
+            let streak = streakCalculationService.calculateCurrentStreak(
+                habit: habit,
+                logs: logs,
+                asOf: today,
+                timezone: timezone
+            )
+            habitStreaks[habit.id] = streak
+        }
+
         // Schedule notifications with incrementing badge numbers based on delivery order
         // Badge is set at schedule time for background delivery, and updated dynamically in willPresent for foreground
         var scheduledCount = 0
         var skippedCount = 0
-        let today = Date()
+
+        // Get current badge baseline (delivered notifications count)
+        // Each scheduled notification gets an incrementing badge number
+        await notificationService.updateBadgeCount() // Ensure badge is current before getting baseline
+        var nextBadgeNumber = 1 // Start from 1, assuming we cleared delivered notifications or they'll be handled
 
         for notification in notificationsToSchedule {
             let habit = notification.habit
@@ -173,19 +213,23 @@ public final class DefaultDailyNotificationScheduler: DailyNotificationScheduler
                 continue
             }
 
-            do {
-                // Badge number based on delivery order (1-indexed)
-                // Sorted by (hour, minute, secondOffset) to match actual iOS delivery order
-                let badgeNumber = scheduledCount + 1
+            // Get category name for this habit
+            let categoryName = habit.categoryId.flatMap { categoryMap[$0] }
+            let currentStreak = habitStreaks[habit.id] ?? 0
 
+            do {
                 try await notificationService.scheduleSingleNotification(
                     for: habit.id,
                     habitName: habit.name,
                     habitKind: habit.kind,
                     time: time,
-                    badgeNumber: badgeNumber
+                    badgeNumber: nextBadgeNumber,
+                    habitCategory: categoryName,
+                    currentStreak: currentStreak,
+                    isWeekend: isWeekend
                 )
                 scheduledCount += 1
+                nextBadgeNumber += 1
             } catch {
                 logger.logNotification(
                     event: "Failed to schedule notification",

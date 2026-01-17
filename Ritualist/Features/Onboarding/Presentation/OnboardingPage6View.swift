@@ -91,6 +91,9 @@ struct OnboardingPage6View: View {
                     }
                 }
                 .toggleStyle(.switch)
+                .onChange(of: viewModel.wantsTrainingTour) { _, _ in
+                    HapticFeedbackService.shared.trigger(.selection)
+                }
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)

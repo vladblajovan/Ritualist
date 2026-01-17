@@ -166,19 +166,25 @@ struct ProgressColorViewLogicTests {
     @Test("CardDesign color for high completion (85%)")
     func cardDesignColorHigh() {
         let color = ProgressColorViewLogic.cardDesignColor(for: 0.85)
-        #expect(color == CardDesign.progressOrange, "High completion uses CardDesign orange")
+        #expect(color == CardDesign.progressLightGreen, "High completion uses CardDesign light green")
     }
 
     @Test("CardDesign color for medium completion (60%)")
     func cardDesignColorMedium() {
         let color = ProgressColorViewLogic.cardDesignColor(for: 0.6)
-        #expect(color == CardDesign.progressRed.opacity(0.6), "Medium completion uses CardDesign red with opacity")
+        #expect(color == CardDesign.progressOrange, "Medium completion uses CardDesign orange")
     }
 
-    @Test("CardDesign color for low completion (20%)")
-    func cardDesignColorLow() {
+    @Test("CardDesign color for low-mid completion (30%)")
+    func cardDesignColorLowMid() {
+        let color = ProgressColorViewLogic.cardDesignColor(for: 0.3)
+        #expect(color == CardDesign.progressCoral, "Low-mid completion uses CardDesign coral")
+    }
+
+    @Test("CardDesign color for very low completion (20%)")
+    func cardDesignColorVeryLow() {
         let color = ProgressColorViewLogic.cardDesignColor(for: 0.2)
-        #expect(color == CardDesign.secondaryBackground, "Low completion uses secondary background")
+        #expect(color == CardDesign.progressRed.opacity(0.6), "Very low completion uses CardDesign red with opacity")
     }
 
     @Test("CardDesign color for zero completion")
