@@ -495,7 +495,7 @@ struct ScenarioAnalysisDemoView: View {
 
     /// Returns predefined categories with their personality weights (matching CategoryDefinitionsService)
     private func getPredefinedCategoriesForDemo() -> [HabitCategory] {
-        return [
+        [
             HabitCategory(id: "health", name: "health", displayName: "Health", emoji: "💪", order: 0, isPredefined: true,
                          personalityWeights: ["conscientiousness": 0.6, "neuroticism": -0.3, "agreeableness": 0.2]),
             HabitCategory(id: "wellness", name: "wellness", displayName: "Wellness", emoji: "🧘", order: 1, isPredefined: true,

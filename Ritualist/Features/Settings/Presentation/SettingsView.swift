@@ -72,6 +72,7 @@ private struct SettingsContentView: View {
 private struct SettingsFormView: View {
     @Bindable var vm: SettingsViewModel
     @Injected(\.debugLogger) private var logger
+    @StateObject private var hapticService = HapticFeedbackService.shared
     @FocusState private var isNameFieldFocused: Bool
     @State private var showingImagePicker = false
     @State private var selectedImageData: Data?
@@ -120,6 +121,9 @@ private struct SettingsFormView: View {
                         updateUserName: updateUserName
                     )
 
+                    // Subscription Section
+                    SubscriptionManagementSectionView(vm: vm)
+
                     #if DEBUG
                     // Debug Section
                     Section(Strings.Settings.sectionDebug) {
@@ -134,81 +138,96 @@ private struct SettingsFormView: View {
                     }
                     #endif
 
-                    // App Settings Section
-                    Section(Strings.Settings.sectionApp) {
+                    // Settings Section
+                    Section(Strings.Settings.sectionSettings) {
+                        // Appearance
                         NavigationLink {
-                            AppSettingsView()
+                            AppearanceSettingsView()
                         } label: {
                             Label {
-                                Text(Strings.Settings.appSettings)
-                            } icon: {
-                                Image(systemName: "gearshape")
-                                    .font(.title2)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                    }
-
-                    // Appearance Section
-                    Section(Strings.Settings.sectionAppearance) {
-                        HStack {
-                            Label {
-                                Picker(Strings.Settings.appearanceSetting, selection: $appearance) {
-                                    Text(Strings.Settings.followSystem).tag(0)
-                                    Text(Strings.Settings.light).tag(1)
-                                    Text(Strings.Settings.dark).tag(2)
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .onChange(of: appearance) { _, newValue in
-                                    // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-                                    Task { @MainActor in
-                                        vm.profile.appearance = newValue
-                                        _ = await vm.save()
-                                        await vm.updateAppearance(newValue)
-                                    }
-                                }
+                                Text(Strings.Settings.sectionAppearance)
                             } icon: {
                                 Image(systemName: "circle.lefthalf.filled")
                                     .font(.title2)
                                     .foregroundColor(.blue)
                             }
                         }
-                    }
 
-                    // Timezone Section
-                    Section(Strings.Settings.sectionTimezone) {
+                        // Haptic Feedback (inline toggle)
+                        Toggle(isOn: $hapticService.isEnabled) {
+                            Label {
+                                Text(Strings.Settings.hapticFeedback)
+                            } icon: {
+                                Image(systemName: "waveform")
+                                    .font(.title2)
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                        .onChange(of: hapticService.isEnabled) { _, newValue in
+                            if newValue {
+                                HapticFeedbackService.shared.trigger(.medium)
+                            }
+                        }
+
+                        // Icon Visibility
+                        NavigationLink {
+                            IconVisibilitySettingsView()
+                        } label: {
+                            Label {
+                                Text(Strings.Settings.sectionIconVisibility)
+                            } icon: {
+                                Image(systemName: "eye")
+                                    .font(.title2)
+                                    .foregroundColor(.green)
+                            }
+                        }
+
+                        // Timezone
                         NavigationLink {
                             AdvancedSettingsView(
                                 vm: vm,
                                 displayTimezoneMode: $displayTimezoneMode
                             )
                         } label: {
-                            HStack {
-                                Label(Strings.Settings.timezoneSettings, systemImage: "clock.badge.questionmark")
-                                Spacer()
+                            Label {
+                                Text(Strings.Settings.timezoneSettings)
+                            } icon: {
+                                Image(systemName: "clock.badge.questionmark")
+                                    .font(.title2)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+
+                        // iCloud Sync
+                        NavigationLink {
+                            ICloudSyncSettingsView(vm: vm)
+                        } label: {
+                            Label {
+                                Text(Strings.ICloudSync.iCloud)
+                            } icon: {
+                                Image(systemName: "icloud")
+                                    .font(.title2)
+                                    .foregroundColor(.cyan)
                             }
                         }
                     }
 
-                    // Subscription Section
-                    SubscriptionManagementSectionView(vm: vm)
-
-                    // iCloud Sync Section
-                    ICloudSyncSectionView(vm: vm)
-
                     // Permissions Section (Notifications + Location)
                     PermissionsSectionView(vm: vm)
 
-                    // Data Management Section (Export/Import/Delete)
+                    // Data Section (Export/Import/Delete)
                     DataManagementSectionView(vm: vm) { result in
                         vm.showDeleteResultToast(result)
                     }
 
-                    // Social Media Section
-                    SocialMediaLinksView()
-
                     // Support Section
                     Section(Strings.Settings.sectionSupport) {
+                        NavigationLink {
+                            UserGuideView()
+                        } label: {
+                            Label(Strings.UserGuide.title, systemImage: "book.fill")
+                        }
+
                         Link(destination: AppURLs.supportEmail) {
                             HStack {
                                 Label(Strings.Settings.contactSupport, systemImage: "envelope")
@@ -252,6 +271,9 @@ private struct SettingsFormView: View {
                             }
                         }
                     }
+
+                    // Connect With Us Section
+                    SocialMediaLinksView()
 
                     // About Section
                     Section(Strings.Settings.sectionAbout) {

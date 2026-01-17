@@ -35,17 +35,12 @@ struct SubscriptionManagementSectionView: View {
                 )
             }
             #else
-            // Subscription Row (Production) - only show for premium users
-            if vm.subscriptionPlan != .free {
-                HStack {
-                    // Show "Trial" when user is on trial, otherwise show plan name (Annual/Monthly/Weekly)
-                    Label(vm.isOnTrial ? Strings.Subscription.trial : vm.subscriptionPlan.displayName, systemImage: subscriptionIcon)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    CrownProBadge()
-                }
+            // Subscription Status Row (Production)
+            Label {
+                Text(vm.isOnTrial ? Strings.Subscription.trial : vm.subscriptionPlan.displayName)
+            } icon: {
+                Image(systemName: subscriptionIcon)
+                    .foregroundStyle(subscriptionIconStyle)
             }
             #endif
 
@@ -136,9 +131,18 @@ struct SubscriptionManagementSectionView: View {
     private var subscriptionIcon: String {
         switch vm.subscriptionPlan {
         case .free:
-            return "person"
+            return "person.fill"
         case .weekly, .monthly, .annual:
-            return "star.circle.fill"
+            return "crown.fill"
+        }
+    }
+
+    private var subscriptionIconStyle: AnyShapeStyle {
+        switch vm.subscriptionPlan {
+        case .free:
+            return AnyShapeStyle(Color.secondary)
+        case .weekly, .monthly, .annual:
+            return AnyShapeStyle(GradientTokens.premiumCrown)
         }
     }
 
