@@ -30,13 +30,13 @@ public final class HabitsViewModel {
     // MARK: - Shared ViewModels
     
     // MARK: - Data State (Unified)
-    public private(set) var habitsData = HabitsData(habits: [], categories: [])
-    public private(set) var isLoading = false
-    public private(set) var error: Error?
-    public private(set) var isCreating = false
-    public private(set) var isUpdating = false
-    public private(set) var isDeleting = false
-    public private(set) var isReordering = false
+    public var habitsData = HabitsData(habits: [], categories: [])
+    public var isLoading = false
+    public var error: Error?
+    public var isCreating = false
+    public var isUpdating = false
+    public var isDeleting = false
+    public var isReordering = false
 
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
@@ -255,7 +255,7 @@ public final class HabitsViewModel {
 
     /// Posts habitsDataDidChange notification with coalescing to prevent spam.
     /// Multiple rapid calls within 100ms are coalesced into a single notification.
-    private func postCoalescedDataChangeNotification() {
+    func postCoalescedDataChangeNotification() {
         // Cancel any pending notification
         notificationCoalesceTask?.cancel()
 
@@ -268,153 +268,6 @@ public final class HabitsViewModel {
         }
     }
 
-    public func create(_ habit: Habit) async -> Bool {
-        isCreating = true
-        error = nil
-        
-        do {
-            _ = try await createHabit.execute(habit)
-
-            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
-            postCoalescedDataChangeNotification()
-
-            await refresh() // Refresh the list
-            isCreating = false
-
-            // Track habit creation
-            userActionTracker.track(.habitCreated(
-                habitId: habit.id.uuidString,
-                habitName: habit.name,
-                habitType: habit.kind == .binary ? "binary" : "numeric"
-            ))
-
-            return true
-        } catch {
-            self.error = error
-            isCreating = false
-            userActionTracker.trackError(error, context: "habit_create", additionalProperties: ["habit_name": habit.name, "habit_type": habit.kind == .binary ? "binary" : "numeric"])
-            return false
-        }
-    }
-    
-    public func update(_ habit: Habit) async -> Bool {
-        isUpdating = true
-        error = nil
-        
-        do {
-            try await updateHabit.execute(habit)
-
-            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
-            postCoalescedDataChangeNotification()
-
-            await refresh() // Refresh the list
-            isUpdating = false
-
-            // Track habit update
-            userActionTracker.track(.habitUpdated(
-                habitId: habit.id.uuidString,
-                habitName: habit.name
-            ))
-
-            return true
-        } catch {
-            self.error = error
-            isUpdating = false
-            userActionTracker.trackError(error, context: "habit_update", additionalProperties: ["habit_id": habit.id.uuidString, "habit_name": habit.name])
-            return false
-        }
-    }
-    
-    public func delete(id: UUID) async -> Bool {
-        isDeleting = true
-        error = nil
-        
-        // Capture habit info before deletion for tracking
-        let habitToDelete = habitsData.habits.first { $0.id == id }
-        
-        do {
-            try await deleteHabit.execute(id: id)
-
-            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
-            postCoalescedDataChangeNotification()
-
-            await refresh() // Refresh the list
-            isDeleting = false
-
-            // Track habit deletion
-            if let habit = habitToDelete {
-                userActionTracker.track(.habitDeleted(
-                    habitId: habit.id.uuidString,
-                    habitName: habit.name
-                ))
-            }
-
-            return true
-        } catch {
-            self.error = error
-            isDeleting = false
-            userActionTracker.trackError(error, context: "habit_delete", additionalProperties: ["habit_id": id.uuidString])
-            return false
-        }
-    }
-    
-    public func toggleActiveStatus(id: UUID) async -> Bool {
-        isUpdating = true
-        error = nil
-        
-        // Capture habit info before toggle for tracking
-        let habitToToggle = habitsData.habits.first { $0.id == id }
-        
-        do {
-            _ = try await toggleHabitActiveStatus.execute(id: id)
-            await refresh() // Refresh the list
-            isUpdating = false
-            
-            // Track habit activation/deactivation
-            if let habit = habitToToggle {
-                if habit.isActive {
-                    // Was active, now archived
-                    userActionTracker.track(.habitArchived(
-                        habitId: habit.id.uuidString,
-                        habitName: habit.name
-                    ))
-                } else {
-                    // Was inactive, now restored
-                    userActionTracker.track(.habitRestored(
-                        habitId: habit.id.uuidString,
-                        habitName: habit.name
-                    ))
-                }
-            }
-            
-            return true
-        } catch {
-            self.error = error
-            isUpdating = false
-            userActionTracker.trackError(error, context: "habit_toggle_status", additionalProperties: ["habit_id": id.uuidString])
-            return false
-        }
-    }
-    
-    public func reorderHabits(_ newOrder: [Habit]) async -> Bool {
-        isReordering = true
-        error = nil
-
-        do {
-            try await reorderHabits.execute(newOrder)
-            // Update local state immediately for smooth UI
-            habitsData = HabitsData(habits: newOrder, categories: habitsData.categories)
-            isReordering = false
-            return true
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "habit_reorder", additionalProperties: ["habits_count": newOrder.count])
-            await refresh() // Reload on error to restore correct order
-            isReordering = false
-            return false
-        }
-    }
-    
     public func retry() async {
         await refresh()
     }
@@ -430,20 +283,6 @@ public final class HabitsViewModel {
         HabitDetailViewModel(habit: habit)
     }
 
-    /// Create habit from suggestion (for assistant)
-    /// Note: Feature gating is handled by CreateHabitFromSuggestion UseCase
-    /// and HabitsAssistantSheet's onShowPaywall callback
-    public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        let result = await createHabitFromSuggestionUseCase.execute(suggestion)
-
-        // Only notify on actual data mutation, not on idempotent no-ops (.alreadyExists)
-        if result.didMutateData {
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
-        }
-
-        return result
-    }
-    
     /// Handle create habit button tap from toolbar
     public func handleCreateHabitTap() {
         // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify

@@ -102,8 +102,7 @@ extension OverviewView {
             StreaksCard(
                 streaks: vm.activeStreaks,
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: vm.isLoading
+                onAnimationComplete: {}
             )
             .frame(maxHeight: .infinity, alignment: .top)
             .cardStyle()

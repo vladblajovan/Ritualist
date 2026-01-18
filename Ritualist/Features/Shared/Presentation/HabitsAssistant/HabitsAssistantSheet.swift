@@ -30,6 +30,7 @@ public struct HabitsAssistantSheet: View {
 
     public var body: some View {
         // Set existing habits and paywall callback immediately (before any render)
+        // swiftlint:disable:next redundant_discardable_let
         let _ = {
             vm.setExistingHabits(existingHabits)
             vm.onShowPaywall = onShowPaywall

@@ -36,6 +36,17 @@ extension ScenarioAnalysisDemoView {
         let avgCompletionRate: Double
         let completionRates: [Double]
     }
+
+    /// Input parameters for building analysis result
+    struct AnalysisResultInput {
+        let dominantTrait: PersonalityTrait
+        let scores: [PersonalityTrait: Double]
+        let suggestedHabits: [Habit]
+        let customHabits: [Habit]
+        let usedCategories: [HabitCategory]
+        let customCategories: [HabitCategory]
+        let avgCompletionRate: Double
+    }
 }
 
 // MARK: - Habit Building Helpers
@@ -211,25 +222,17 @@ extension ScenarioAnalysisDemoView {
     }
 
     /// Builds the final AnalysisResult from personality scores and input data
-    func buildAnalysisResult(
-        dominantTrait: PersonalityTrait,
-        scores: [PersonalityTrait: Double],
-        suggestedHabits: [Habit],
-        customHabits: [Habit],
-        usedCategories: [HabitCategory],
-        customCategories: [HabitCategory],
-        avgCompletionRate: Double
-    ) -> AnalysisResult {
-        let suggestedNames = suggestedHabits.map { $0.name }
-        let customNames = customHabits.map { $0.name }
-        let categoryNames = usedCategories.map { $0.displayName } + customCategories.map { $0.displayName }
+    func buildAnalysisResult(from input: AnalysisResultInput) -> AnalysisResult {
+        let suggestedNames = input.suggestedHabits.map { $0.name }
+        let customNames = input.customHabits.map { $0.name }
+        let categoryNames = input.usedCategories.map { $0.displayName } + input.customCategories.map { $0.displayName }
 
         return AnalysisResult(
-            dominantTrait: dominantTrait,
-            traitScores: scores,
+            dominantTrait: input.dominantTrait,
+            traitScores: input.scores,
             habits: suggestedNames + customNames,
             categories: categoryNames,
-            completionRate: avgCompletionRate
+            completionRate: input.avgCompletionRate
         )
     }
 }

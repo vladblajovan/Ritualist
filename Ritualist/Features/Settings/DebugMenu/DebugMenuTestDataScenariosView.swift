@@ -396,7 +396,7 @@ struct ScenarioAnalysisDemoView: View {
         }
 
         // Build final result
-        analysisResult = buildAnalysisResult(
+        let resultInput = AnalysisResultInput(
             dominantTrait: dominantTrait,
             scores: scores,
             suggestedHabits: suggestedResult.habits,
@@ -405,6 +405,7 @@ struct ScenarioAnalysisDemoView: View {
             customCategories: customResult.categories,
             avgCompletionRate: inputData.avgCompletionRate
         )
+        analysisResult = buildAnalysisResult(from: resultInput)
     }
 
     /// Returns predefined categories with their personality weights (matching CategoryDefinitionsService)
