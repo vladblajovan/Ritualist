@@ -6,12 +6,10 @@
 //
 
 import SwiftUI
-import FactoryKit
 import RitualistCore
 
 public struct CategorySection: View {
     @Bindable var vm: HabitDetailViewModel
-    @Binding var showingCategoryManagement: Bool
 
     public var body: some View {
         Section(Strings.Habits.sectionCategory) {
@@ -28,14 +26,11 @@ public struct CategorySection: View {
                         }
                         .padding(.vertical, Spacing.medium)
                     } else {
-                        // Reusable category carousel with cogwheel
+                        // Reusable category carousel (no manage button in habit detail)
                         CategoryCarouselWithManagement(
                             categories: vm.categories,
                             selectedCategory: $vm.selectedCategory,
-                            onManageTap: {
-                                showingCategoryManagement = true
-                            },
-                            scrollToStartOnSelection: true,
+                            scrollToStartOnSelection: false,
                             allowDeselection: false
                         )
                     }

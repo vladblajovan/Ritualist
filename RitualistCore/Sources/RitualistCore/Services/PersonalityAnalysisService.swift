@@ -31,7 +31,6 @@ public protocol PersonalityAnalysisService: Sendable {
     func calculateConfidence(from metadata: AnalysisMetadata) -> ConfidenceLevel
 }
 
-// swiftlint:disable function_body_length type_body_length
 public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService {
     
     private let repository: PersonalityAnalysisRepositoryProtocol
@@ -42,15 +41,11 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         self.errorHandler = errorHandler
     }
     
-    // PHASE 2: Business method removed - use AnalyzePersonalityUseCase instead
-    // This service now contains only utility calculation methods
-    
     public func calculatePersonalityScores(from input: HabitAnalysisInput) -> [PersonalityTrait: Double] {
         let (scores, _, _) = calculatePersonalityScoresWithDetails(from: input, completionStats: nil)
         return scores
     }
-    
-    // swiftlint:disable function_body_length cyclomatic_complexity empty_count
+
     public func calculatePersonalityScoresWithDetails(
         from input: HabitAnalysisInput, 
         completionStats: HabitCompletionStats? = nil
@@ -74,13 +69,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
             .agreeableness: 0.0,
             .neuroticism: 0.0
         ]
-        
-        // REMOVED: Suggestion analysis - suggestions are processed via their categories
-        // Having both was causing double-counting and unpredictable results
-        // Category weights are the authoritative source for personality traits
-        
-        // CRITICAL FIX: Analyze predefined category habits
-        // Category weights are the PRIMARY signal - semantic analysis only ADDS to traits, never overrides
 
         // Group active habits by predefined category
         var habitsByPredefinedCategory: [String: [Habit]] = [:]
@@ -94,9 +82,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         for (categoryId, categoryHabits) in habitsByPredefinedCategory {
             guard let category = input.habitCategories.first(where: { $0.id == categoryId }) else { continue }
             guard let weights = category.personalityWeights else { continue }
-
-            // SIMPLIFIED: Use category weights directly - no semantic blending for predefined categories
-            // Predefined categories have carefully calibrated weights that should not be diluted
 
             // Distribute category weight across habits in that category
             let habitWeight = 1.0 / Double(categoryHabits.count)
@@ -125,7 +110,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
                 }
             }
         }
-        
         
         // Analyze custom habit categories - use keyword inference for weights
         // Custom categories contribute with lower weight than predefined categories
@@ -258,7 +242,6 @@ public final class DefaultPersonalityAnalysisService: PersonalityAnalysisService
         
         return (scores: normalizedScores, accumulators: traitAccumulators, totalWeights: totalWeights)
     }
-    // swiftlint:enable function_body_length
     
     nonisolated public func determineDominantTrait(from scores: [PersonalityTrait: Double]) -> PersonalityTrait {
         return scores.max(by: { $0.value < $1.value })?.key ?? .conscientiousness

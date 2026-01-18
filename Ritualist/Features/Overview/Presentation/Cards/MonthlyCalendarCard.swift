@@ -77,9 +77,17 @@ struct MonthlyCalendarCard: View {
 
     private var monthString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
+        // Show year if viewing a different year than current
+        formatter.dateFormat = isViewingCurrentYear ? "MMMM" : "MMMM yyyy"
         formatter.timeZone = timezone
         return formatter.string(from: currentDate)
+    }
+
+    /// Whether the displayed month is in the current calendar year
+    private var isViewingCurrentYear: Bool {
+        let currentComponents = calendar.dateComponents(in: timezone, from: currentDate)
+        let todayComponents = calendar.dateComponents(in: timezone, from: Date())
+        return currentComponents.year == todayComponents.year
     }
 
     private var isViewingCurrentMonth: Bool {

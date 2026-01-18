@@ -167,10 +167,9 @@ struct PersonalityInsightsCard: View {
                 }
             }
         }
-        .padding(.vertical, 8)
     }
-    
-    @ViewBuilder 
+
+    @ViewBuilder
     private var noInsightsContent: some View {
         HStack {
             Image(systemName: "brain.head.profile")

@@ -27,7 +27,7 @@ public protocol CompletionPatternAnalyzerProtocol: Sendable {
 public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol {
 
     private let getActiveHabits: GetActiveHabitsUseCase
-    private let getLogs: GetLogsUseCase
+    private let getBatchLogs: GetBatchLogsUseCase
     private let logger: DebugLogger
 
     /// Minimum improvement over yesterday to qualify as comeback
@@ -38,11 +38,11 @@ public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol 
 
     public init(
         getActiveHabits: GetActiveHabitsUseCase,
-        getLogs: GetLogsUseCase,
+        getBatchLogs: GetBatchLogsUseCase,
         logger: DebugLogger
     ) {
         self.getActiveHabits = getActiveHabits
-        self.getLogs = getLogs
+        self.getBatchLogs = getBatchLogs
         self.logger = logger
     }
 
@@ -53,20 +53,31 @@ public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol 
         let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: timezone)
 
         do {
+            // Check cancellation before expensive database query
+            try Task.checkCancellation()
+
             let habits = try await getActiveHabits.execute()
             guard !habits.isEmpty else { return false }
 
-            var completedCount = 0
+            // Check cancellation after first query
+            try Task.checkCancellation()
 
-            for habit in habits {
-                let logs = try await getLogs.execute(
-                    for: habit.id,
-                    since: yesterday,
-                    until: yesterday,
-                    timezone: timezone
-                )
+            // Batch fetch all logs in a single query (O(1) instead of O(n) queries)
+            let habitIds = habits.map(\.id)
+            let allLogs = try await getBatchLogs.execute(
+                for: habitIds,
+                since: yesterday,
+                until: yesterday,
+                timezone: timezone
+            )
 
-                let hasCompletionYesterday = logs.contains { log in
+            // Check cancellation after batch query
+            try Task.checkCancellation()
+
+            // Count habits that had completions yesterday
+            let completedCount = habits.filter { habit in
+                guard let logs = allLogs[habit.id], !logs.isEmpty else { return false }
+                return logs.contains { log in
                     let logTimezone = log.resolvedTimezone(fallback: timezone)
                     return CalendarUtils.areSameDayAcrossTimezones(
                         log.date,
@@ -75,11 +86,7 @@ public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol 
                         timezone2: timezone
                     )
                 }
-
-                if hasCompletionYesterday {
-                    completedCount += 1
-                }
-            }
+            }.count
 
             let yesterdayCompletion = Double(completedCount) / Double(habits.count)
 
@@ -103,6 +110,9 @@ public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol 
 
             return isComebackStory
 
+        } catch is CancellationError {
+            // Task was cancelled (e.g., user scrolled to different date) - this is expected
+            return false
         } catch {
             logger.log(
                 "Comeback story detection failed",

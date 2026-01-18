@@ -60,7 +60,9 @@ private struct OnboardingContentView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut, value: viewModel.currentPage)
-            .sensoryFeedback(.selection, trigger: viewModel.currentPage) // Haptic on page change
+            .onChange(of: viewModel.currentPage) { _, _ in
+                HapticFeedbackService.shared.trigger(.selection) // Haptic on page change (respects global setting)
+            }
 
             // Progress indicator
             OnboardingProgressView(currentPage: viewModel.currentPage, totalPages: viewModel.totalPages)

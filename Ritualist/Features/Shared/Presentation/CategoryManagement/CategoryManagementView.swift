@@ -102,6 +102,7 @@ public struct CategoryManagementView: View {
             } message: {
                 Text(deactivateConfirmationMessage)
             }
+            .presentationDragIndicator(.visible)
             .task {
                 await vm.load()
             }

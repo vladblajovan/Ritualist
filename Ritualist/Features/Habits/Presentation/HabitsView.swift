@@ -78,6 +78,14 @@ public struct HabitsRoot: View {
                 await vm.refresh()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Refresh premium status when app returns from background
+            // Handles cases where subscription status may have changed (expired, renewed via App Store)
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
+                await vm.refreshPremiumStatus()
+            }
+        }
         .sheet(
             isPresented: $showingCategoryManagement,
             onDismiss: {
@@ -186,59 +194,21 @@ private struct HabitsContentView: View {
     }
 }
 
-// swiftlint:disable type_body_length
-private struct HabitsListView: View {
-    @Environment(\.editMode) private var editMode
+struct HabitsListView: View {
+    @Environment(\.editMode) var editMode
     @Bindable var vm: HabitsViewModel
     @Binding var showingCategoryManagement: Bool
-    @Injected(\.debugLogger) private var logger
+    @Injected(\.debugLogger) var logger
     @State private var showingDeleteConfirmation = false
     @State private var showingBatchDeleteConfirmation = false
     @State private var showingDeactivateConfirmation = false
     @State private var habitToDelete: Habit?
-    @State private var habitsToDelete: Set<UUID> = []
-    @State private var habitsToDeactivate: Set<UUID> = []
-    @State private var selection: Set<UUID> = []
+    @State var habitsToDelete: Set<UUID> = []
+    @State var habitsToDeactivate: Set<UUID> = []
+    @State var selection: Set<UUID> = []
 
-    private var isEditMode: Bool {
+    var isEditMode: Bool {
         editMode?.wrappedValue.isEditing == true
-    }
-
-    private var headerActions: [HeaderAction] {
-        var actions: [HeaderAction] = []
-
-        // Edit button - only show when habits exist
-        if !vm.filteredHabits.isEmpty {
-            actions.append(HeaderAction(
-                icon: isEditMode ? "checkmark" : "pencil",
-                accessibilityLabel: isEditMode ? "Done editing" : "Edit habits"
-            ) {
-                HapticFeedbackService.shared.trigger(.light)
-                withAnimation {
-                    editMode?.wrappedValue = isEditMode ? .inactive : .active
-                }
-            })
-        }
-
-        // Add habit button
-        actions.append(HeaderAction(
-            icon: "plus",
-            accessibilityLabel: "Add habit"
-        ) {
-            vm.handleCreateHabitTap()
-        })
-
-        return actions
-    }
-
-    private var stickyBrandHeader: some View {
-        AppBrandHeader(
-            completionPercentage: nil,
-            progressDisplayStyle: .circular,
-            actions: headerActions
-        )
-        .padding(.top, Spacing.medium)
-        .zIndex(1)
     }
 
     var body: some View {
@@ -315,7 +285,9 @@ private struct HabitsListView: View {
                             ForEach(vm.filteredHabits, id: \.id) { habit in
                                 GenericRowView.habitRowWithSchedule(
                                     habit: habit,
-                                    scheduleStatus: vm.getScheduleStatus(for: habit)
+                                    scheduleStatus: vm.getScheduleStatus(for: habit),
+                                    isEditMode: editMode?.wrappedValue == .active,
+                                    isPremiumUser: vm.isPremiumUser
                                 ) {
                                     vm.selectHabit(habit)
                                 }
@@ -388,24 +360,7 @@ private struct HabitsListView: View {
                 }
             }
         }
-        .background {
-            VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [
-                        AppColors.brand.opacity(0.25),
-                        AppColors.brand.opacity(0.12),
-                        AppColors.accentCyan.opacity(0.06),
-                        Color(.systemGroupedBackground)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 150)
-
-                Color(.systemGroupedBackground).opacity(0.03)
-            }
-            .ignoresSafeArea()
-        }
+        .background { backgroundGradientView }
         .overlay(alignment: .bottom) {
             if vm.isCreating || vm.isUpdating || vm.isDeleting {
                 OperationStatusView(
@@ -485,114 +440,6 @@ private struct HabitsListView: View {
         } message: {
             Text(deactivateConfirmationMessage)
         }
-    }
-
-    private var hasActiveSelectedHabits: Bool {
-        let selectedHabits = vm.filteredHabits.filter { selection.contains($0.id) }
-        return selectedHabits.contains { $0.isActive }
-    }
-    
-    private var hasInactiveSelectedHabits: Bool {
-        let selectedHabits = vm.filteredHabits.filter { selection.contains($0.id) }
-        return selectedHabits.contains { !$0.isActive }
-    }
-    
-    private var batchDeleteConfirmationMessage: String {
-        // Use the live selection for counting, but filter to get actual habits to delete
-        let habitsToCount = habitsToDelete.isEmpty ? selection : habitsToDelete
-        let selectedHabits = vm.filteredHabits.filter { habitsToCount.contains($0.id) }
-        
-        if selectedHabits.count == 1 {
-            return "Are you sure you want to delete \"\(selectedHabits.first!.name)\"? This action cannot be undone and all habit data will be lost."
-        } else {
-            return "Are you sure you want to delete \(selectedHabits.count) habits? This action cannot be undone and all habit data will be lost."
-        }
-    }
-    
-    private var deactivateConfirmationMessage: String {
-        // Use the live selection for counting, but filter to get actual habits to deactivate
-        let habitsToCount = habitsToDeactivate.isEmpty ? selection : habitsToDeactivate
-        let selectedHabits = vm.filteredHabits.filter { habitsToCount.contains($0.id) && $0.isActive }
-        
-        if selectedHabits.count == 1 {
-            return "Are you sure you want to deactivate \"\(selectedHabits.first!.name)\"? It will be hidden from your habits list but existing data will remain."
-        } else {
-            return "Are you sure you want to deactivate \(selectedHabits.count) habits? They will be hidden from your habits list but existing data will remain."
-        }
-    }
-    
-    private func activateSelectedHabits() async {
-        for habitId in selection {
-            _ = await vm.toggleActiveStatus(id: habitId)
-        }
-        selection.removeAll()
-    }
-    
-    private func deactivateSelectedHabits() async {
-        logger.log(
-            "🔕 Deactivating habits",
-            level: .info,
-            category: .ui,
-            metadata: [
-                "count": habitsToDeactivate.count,
-                "habitIds": habitsToDeactivate.map { $0.uuidString }.joined(separator: ", ")
-            ]
-        )
-        for habitId in habitsToDeactivate {
-            _ = await vm.toggleActiveStatus(id: habitId)
-        }
-        selection.removeAll()
-    }
-
-    private func deleteSelectedHabits() async {
-        logger.log(
-            "🗑️ Deleting habits",
-            level: .info,
-            category: .ui,
-            metadata: [
-                "count": habitsToDelete.count,
-                "habitIds": habitsToDelete.map { $0.uuidString }.joined(separator: ", ")
-            ]
-        )
-        for habitId in habitsToDelete {
-            _ = await vm.delete(id: habitId)
-        }
-        selection.removeAll()
-    }
-    
-    private func deleteHabit(_ habit: Habit) async {
-        _ = await vm.delete(id: habit.id)
-    }
-    
-    private func handleMove(from source: IndexSet, to destination: Int) async {
-        guard vm.selectedFilterCategory == nil else { return }
-
-        var reorderedHabits = vm.filteredHabits
-        reorderedHabits.move(fromOffsets: source, toOffset: destination)
-
-        // Update displayOrder for each habit
-        for (index, habit) in reorderedHabits.enumerated() {
-            reorderedHabits[index] = Habit(
-                id: habit.id,
-                name: habit.name,
-                colorHex: habit.colorHex,
-                emoji: habit.emoji,
-                kind: habit.kind,
-                unitLabel: habit.unitLabel,
-                dailyTarget: habit.dailyTarget,
-                schedule: habit.schedule,
-                reminders: habit.reminders,
-                startDate: habit.startDate,
-                endDate: habit.endDate,
-                isActive: habit.isActive,
-                displayOrder: index,
-                categoryId: habit.categoryId,
-                suggestionId: habit.suggestionId
-            )
-        }
-
-        // Use reorderHabits which sets isReordering (not isUpdating) to avoid overlay flash
-        _ = await vm.reorderHabits(reorderedHabits)
     }
 }
 
@@ -730,73 +577,6 @@ private struct DraggableFloatingButton: View {
                 }
         )
         .transition(.scale.combined(with: .opacity))
-    }
-}
-
-// MARK: - Over-Limit Banner
-
-private struct OverLimitBannerView: View {
-    let currentCount: Int
-    let maxCount: Int
-    let onUpgradeTap: () -> Void
-
-    private var isAtLimit: Bool {
-        currentCount >= maxCount
-    }
-
-    private var message: String {
-        isAtLimit
-            ? "Keep the momentum! Unlock Pro for unlimited habits."
-            : "Unlock Pro to create unlimited habits and reach your goals faster."
-    }
-
-    var body: some View {
-        ProUpgradeBanner(
-            style: .card(habitCount: currentCount, maxHabits: maxCount, message: message),
-            onUnlock: onUpgradeTap
-        )
-    }
-}
-
-// MARK: - First Time Empty State
-
-private struct HabitsFirstTimeEmptyState: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "checklist")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary.opacity(0.6))
-                .accessibilityHidden(true)
-
-            VStack(spacing: 8) {
-                Text(Strings.EmptyState.noHabitsYet)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-
-                HStack(spacing: 4) {
-                    Text("Tap")
-                    Image(systemName: "plus")
-                        .fontWeight(.medium)
-                    Text("or")
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    Text("to create your first habit")
-                }
-                .font(.body)
-                .foregroundColor(.secondary)
-            }
-        }
-        .frame(height: 300)
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 40)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("No habits yet. Tap plus or the AI assistant button to create your first habit.")
     }
 }
 

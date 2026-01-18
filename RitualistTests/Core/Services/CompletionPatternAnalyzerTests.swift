@@ -23,19 +23,23 @@ private final class MockGetActiveHabitsUseCase: GetActiveHabitsUseCase, @uncheck
     }
 }
 
-private final class MockGetLogsUseCase: GetLogsUseCase, @unchecked Sendable {
+private final class MockGetBatchLogsUseCase: GetBatchLogsUseCase, @unchecked Sendable {
     var logsByHabit: [UUID: [HabitLog]] = [:]
     var shouldThrow = false
 
-    func execute(for habitID: UUID, since: Date?, until: Date?, timezone: TimeZone) async throws -> [HabitLog] {
+    func execute(for habitIDs: [UUID], since: Date?, until: Date?, timezone: TimeZone) async throws -> [UUID: [HabitLog]] {
         if shouldThrow {
             throw NSError(domain: "test", code: 1)
         }
-        return logsByHabit[habitID] ?? []
+        var result: [UUID: [HabitLog]] = [:]
+        for habitID in habitIDs {
+            result[habitID] = logsByHabit[habitID] ?? []
+        }
+        return result
     }
 
-    func execute(for habitID: UUID, since: Date?, until: Date?) async throws -> [HabitLog] {
-        try await execute(for: habitID, since: since, until: until, timezone: .current)
+    func execute(for habitIDs: [UUID], since: Date?, until: Date?) async throws -> [UUID: [HabitLog]] {
+        try await execute(for: habitIDs, since: since, until: until, timezone: .current)
     }
 }
 
@@ -50,7 +54,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func consistentPatternAt80Percent() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -63,7 +67,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func improvingPatternAt60Percent() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -76,7 +80,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func decliningPatternAt30Percent() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -89,7 +93,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func insufficientPatternAt0Percent() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -102,7 +106,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func insufficientPatternForNil() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -115,7 +119,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func boundaryAt80Percent() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -128,7 +132,7 @@ struct CompletionPatternAnalyzerPatternTests {
     func boundaryAt50Percent() {
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: MockGetActiveHabitsUseCase(),
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -151,7 +155,7 @@ struct CompletionPatternAnalyzerComebackTests {
 
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: mockHabits,
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 
@@ -170,7 +174,7 @@ struct CompletionPatternAnalyzerComebackTests {
 
         let analyzer = CompletionPatternAnalyzer(
             getActiveHabits: mockHabits,
-            getLogs: MockGetLogsUseCase(),
+            getBatchLogs: MockGetBatchLogsUseCase(),
             logger: DebugLogger(subsystem: "test", category: "test")
         )
 

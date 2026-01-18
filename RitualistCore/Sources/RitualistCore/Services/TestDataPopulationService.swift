@@ -7,8 +7,6 @@
 
 import Foundation
 
-// swiftlint:disable large_tuple
-
 #if DEBUG
 
 /// Utility service for test data pattern generation and calculations

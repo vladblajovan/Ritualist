@@ -17,14 +17,12 @@ private enum StreaksAccessibility {
     }
     static let streakItemHint = "Double tap for streak details"
     static let emptyStateLabel = "No active streaks. Start completing habits to build your streaks."
-    static let loadingLabel = "Loading streaks"
 }
 
 struct StreaksCard: View {
     let streaks: [StreakInfo]
     let shouldAnimateBestStreak: Bool
     let onAnimationComplete: () -> Void
-    let isLoading: Bool
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var animatingStreakId: String?
@@ -162,21 +160,7 @@ struct StreaksCard: View {
                     .accessibilityLabel(StreaksAccessibility.streakCount(streaks.count))
             }
 
-            if isLoading {
-                // Loading state
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .scaleEffect(0.8)
-
-                    Text(Strings.Overview.loadingStreaks)
-                        .font(CardDesign.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(StreaksAccessibility.loadingLabel)
-            } else if streaks.isEmpty {
+            if streaks.isEmpty {
                 // Empty state
                 VStack(spacing: 12) {
                     Image(systemName: "flame")
@@ -224,7 +208,7 @@ struct StreaksCard: View {
 
         Button {
             // Ensure we have valid streak data before showing sheet
-            guard !isLoading, !streak.habitName.isEmpty, streak.currentStreak >= 0 else { return }
+            guard !streak.habitName.isEmpty, streak.currentStreak >= 0 else { return }
             sheetStreak = streak
         } label: {
             streakItemContent(for: streak, height: height)
@@ -312,8 +296,7 @@ struct StreaksCard: View {
                     StreakInfo(id: "1", habitName: "Workout", emoji: "💪", currentStreak: 7, isActive: true)
                 ],
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: false
+                onAnimationComplete: {}
             )
 
             // 2 streaks: Row 1 [1, 2]
@@ -323,8 +306,7 @@ struct StreaksCard: View {
                     StreakInfo(id: "2", habitName: "Reading", emoji: "📚", currentStreak: 3, isActive: true)
                 ],
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: false
+                onAnimationComplete: {}
             )
 
             // 3 streaks: Row 1 [1, 2] Row 2 [3]
@@ -335,8 +317,7 @@ struct StreaksCard: View {
                     StreakInfo(id: "3", habitName: "Water", emoji: "💧", currentStreak: 12, isActive: true)
                 ],
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: false
+                onAnimationComplete: {}
             )
 
             // 4 streaks: Row 1 [1, 2] Row 2 [3, 4]
@@ -348,8 +329,7 @@ struct StreaksCard: View {
                     StreakInfo(id: "4", habitName: "Meditation", emoji: "🧘", currentStreak: 5, isActive: true)
                 ],
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: false
+                onAnimationComplete: {}
             )
 
             // 5 streaks: Row 1 [1, 2, 3] Row 2 [4, 5]
@@ -362,24 +342,14 @@ struct StreaksCard: View {
                     StreakInfo(id: "5", habitName: "Journaling", emoji: "📝", currentStreak: 9, isActive: true)
                 ],
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: false
-            )
-
-            // Loading state
-            StreaksCard(
-                streaks: [],
-                shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: true
+                onAnimationComplete: {}
             )
 
             // Empty state
             StreaksCard(
                 streaks: [],
                 shouldAnimateBestStreak: false,
-                onAnimationComplete: {},
-                isLoading: false
+                onAnimationComplete: {}
             )
         }
         .padding()

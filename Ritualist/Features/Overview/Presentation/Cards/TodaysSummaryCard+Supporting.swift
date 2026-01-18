@@ -72,6 +72,7 @@ struct ScheduleIconInfoSheet: View {
                 }
             }
         }
+        .presentationDragIndicator(.visible)
     }
 }
 

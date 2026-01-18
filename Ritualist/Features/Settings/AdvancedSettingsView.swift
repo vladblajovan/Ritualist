@@ -325,6 +325,7 @@ private struct HomeTimezonePickerView: View {
                 }
             }
         }
+        .presentationDragIndicator(.visible)
     }
 
     private var filteredTimezones: [TimeZone] {

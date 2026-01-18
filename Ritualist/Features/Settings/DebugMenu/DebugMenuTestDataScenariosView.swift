@@ -204,17 +204,16 @@ struct MLAnalysisDemoView: View {
     }
 }
 
-// swiftlint:disable:next type_body_length
 struct ScenarioAnalysisDemoView: View {
     let scenario: TestDataScenario
-    @Injected(\.personalityAnalysisService) private var personalityService
-    @Injected(\.testDataPopulationService) private var testDataService
+    @Injected(\.personalityAnalysisService) var personalityService
+    @Injected(\.testDataPopulationService) var testDataService
 
     @State private var mlAvailable: Bool = false
     @State private var analysisResult: AnalysisResult?
 
     /// Result of running personality analysis on scenario data
-    private struct AnalysisResult {
+    struct AnalysisResult {
         let dominantTrait: PersonalityTrait
         let traitScores: [PersonalityTrait: Double]
         let habits: [String]
@@ -354,143 +353,59 @@ struct ScenarioAnalysisDemoView: View {
         }
     }
 
-    // swiftlint:disable:next function_body_length
-    private func runAnalysis() {
+    func runAnalysis() {
         let config = TestDataScenarioConfig.config(for: scenario)
-
-        // Get predefined categories with their personality weights
         let predefinedCategories = getPredefinedCategoriesForDemo()
-
-        // Get preferred categories for this personality profile
         let preferredCategoryIds = getPreferredCategoryIds(for: scenario)
 
-        // Get custom category/habit data
-        let customCategoryData = testDataService.getPersonalityCategories(for: scenario)
-        let customHabitData = testDataService.getPersonalityHabits(for: scenario)
-
-        // Build PREDEFINED habits (90% - from preferred categories)
-        // Also build matching HabitSuggestion objects for the selectedSuggestions input
-        var suggestedHabits: [Habit] = []
-        var selectedSuggestions: [HabitSuggestion] = []
-        var habitIndex = 0
-        for categoryId in preferredCategoryIds {
-            let habitsForCategory = getSuggestedHabitsForCategory(categoryId, count: config.suggestedHabitCount / preferredCategoryIds.count + 1)
-            for (name, emoji) in habitsForCategory {
-                if suggestedHabits.count >= config.suggestedHabitCount { break }
-                let suggestionId = "demo_\(categoryId)_\(habitIndex)"
-                suggestedHabits.append(Habit(
-                    id: UUID(),
-                    name: name,
-                    colorHex: "#3498DB",
-                    emoji: emoji,
-                    kind: .binary,
-                    schedule: .daily,
-                    displayOrder: habitIndex,
-                    categoryId: categoryId,
-                    suggestionId: suggestionId
-                ))
-                // Create matching HabitSuggestion - get weights from predefined category
-                let categoryWeights = getPredefinedCategoriesForDemo()
-                    .first { $0.id == categoryId }?.personalityWeights
-                selectedSuggestions.append(HabitSuggestion(
-                    id: suggestionId,
-                    name: name,
-                    emoji: emoji,
-                    colorHex: "#3498DB",
-                    categoryId: categoryId,
-                    kind: .binary,
-                    description: "Demo habit for testing",
-                    personalityWeights: categoryWeights
-                ))
-                habitIndex += 1
-            }
-        }
-
-        // Build CUSTOM habits (10% - from custom categories)
-        let customCategories: [HabitCategory] = customCategoryData.prefix(config.customCategoryCount).enumerated().map { index, data in
-            HabitCategory(
-                id: data.name,
-                name: data.name,
-                displayName: data.displayName,
-                emoji: data.emoji,
-                order: 100 + index,
-                isPredefined: false,
-                personalityWeights: nil
-            )
-        }
-
-        var customHabits: [Habit] = []
-        for (index, data) in customHabitData.prefix(config.customHabitCount).enumerated() {
-            let categoryId = customCategories.isEmpty ? nil : customCategories[index % customCategories.count].id
-            customHabits.append(Habit(
-                id: UUID(),
-                name: data.name,
-                colorHex: data.colorHex,
-                emoji: data.emoji,
-                kind: data.kind,
-                unitLabel: data.unitLabel,
-                dailyTarget: data.dailyTarget,
-                schedule: data.schedule,
-                displayOrder: habitIndex + index,
-                categoryId: categoryId
-            ))
-        }
-
-        // Combine all habits and categories
-        let allHabits = suggestedHabits + customHabits
-
-        // Filter predefined categories to only those used
-        let usedPredefinedCategories = predefinedCategories.filter { category in
-            allHabits.contains { $0.categoryId == category.id }
-        }
-        let allCategories = usedPredefinedCategories + customCategories
-
-        // Generate completion rates based on scenario config
-        let avgCompletionRate = (config.completionRateRange.lowerBound + config.completionRateRange.upperBound) / 2
-        let completionRates = allHabits.map { _ in
-            Double.random(in: config.completionRateRange)
-        }
-
-        // Build analysis input - MATCHING how actual app works
-        let input = HabitAnalysisInput(
-            activeHabits: allHabits,
-            completionRates: completionRates,
-            customHabits: customHabits,
-            customCategories: customCategories,
-            habitCategories: allCategories,
-            selectedSuggestions: selectedSuggestions,
-            trackingDays: config.historyDays,
-            analysisTimeRange: config.historyDays,
-            totalDataPoints: allHabits.count * config.historyDays
+        // Build suggested habits from predefined categories
+        let suggestedResult = buildSuggestedHabits(
+            config: config,
+            preferredCategoryIds: preferredCategoryIds,
+            predefinedCategories: predefinedCategories
         )
 
-        // Build completion stats
-        let completedCount = Int(Double(allHabits.count) * avgCompletionRate)
-        let completionStats = HabitCompletionStats(
-            totalHabits: allHabits.count,
-            completedHabits: completedCount,
-            completionRate: avgCompletionRate
+        // Build custom categories and habits
+        let customResult = buildCustomData(
+            config: config,
+            startingHabitIndex: suggestedResult.habits.count
         )
 
-        // Run actual personality analysis
+        // Combine into analysis input data
+        let inputData = buildAnalysisInputData(
+            suggestedResult: suggestedResult,
+            customResult: customResult,
+            predefinedCategories: predefinedCategories,
+            config: config
+        )
+
+        // Create analysis input and completion stats
+        let input = createHabitAnalysisInput(from: inputData, config: config)
+        let completionStats = createCompletionStats(from: inputData)
+
+        // Run personality analysis
         let (scores, _, _) = personalityService.calculatePersonalityScoresWithDetails(
             from: input,
             completionStats: completionStats
         )
         let dominantTrait = personalityService.determineDominantTrait(from: scores)
 
-        // Build display data
-        let suggestedNames = suggestedHabits.map { $0.name }
-        let customNames = customHabits.map { $0.name }
-        let categoryNames = usedPredefinedCategories.map { $0.displayName } + customCategories.map { $0.displayName }
+        // Filter to used predefined categories for display
+        let usedPredefinedCategories = predefinedCategories.filter { category in
+            inputData.allHabits.contains { $0.categoryId == category.id }
+        }
 
-        analysisResult = AnalysisResult(
+        // Build final result
+        let resultInput = AnalysisResultInput(
             dominantTrait: dominantTrait,
-            traitScores: scores,
-            habits: suggestedNames + customNames,
-            categories: categoryNames,
-            completionRate: avgCompletionRate
+            scores: scores,
+            suggestedHabits: suggestedResult.habits,
+            customHabits: customResult.habits,
+            usedCategories: usedPredefinedCategories,
+            customCategories: customResult.categories,
+            avgCompletionRate: inputData.avgCompletionRate
         )
+        analysisResult = buildAnalysisResult(from: resultInput)
     }
 
     /// Returns predefined categories with their personality weights (matching CategoryDefinitionsService)
@@ -524,7 +439,7 @@ struct ScenarioAnalysisDemoView: View {
     }
 
     /// Returns sample habit names for a predefined category
-    private func getSuggestedHabitsForCategory(_ categoryId: String, count: Int) -> [(name: String, emoji: String)] {
+    func getSuggestedHabitsForCategory(_ categoryId: String, count: Int) -> [(name: String, emoji: String)] {
         let allHabits: [String: [(String, String)]] = [
             "health": [("Drink Water", "💧"), ("Exercise", "🏋️‍♂️"), ("Walk", "🚶‍♀️"), ("Eat Fruits", "🍎"), ("Stretch", "🤸‍♀️"), ("Take Vitamins", "💊")],
             "wellness": [("Meditate", "🧘‍♀️"), ("Sleep Early", "😴"), ("Deep Breathing", "🫁"), ("Gratitude Journal", "📝"), ("Nature Time", "🌲"), ("Digital Detox", "📱")],

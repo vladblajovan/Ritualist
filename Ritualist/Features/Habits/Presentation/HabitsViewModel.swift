@@ -4,7 +4,7 @@ import FactoryKit
 import RitualistCore
 
 @MainActor @Observable
-public final class HabitsViewModel { // swiftlint:disable:this type_body_length
+public final class HabitsViewModel {
     // MARK: - Factory Injected Dependencies
     @ObservationIgnored @Injected(\.loadHabitsData) var loadHabitsData
     @ObservationIgnored @Injected(\.createHabit) var createHabit
@@ -17,24 +17,26 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     @ObservationIgnored @Injected(\.userActionTracker) var userActionTracker
     @ObservationIgnored @Injected(\.paywallViewModel) var paywallViewModel
     @ObservationIgnored @Injected(\.cleanupOrphanedHabits) var cleanupOrphanedHabits
-    @ObservationIgnored @Injected(\.isHabitCompleted) private var isHabitCompleted
-    @ObservationIgnored @Injected(\.calculateDailyProgress) private var calculateDailyProgress
-    @ObservationIgnored @Injected(\.isScheduledDay) private var isScheduledDay
-    @ObservationIgnored @Injected(\.validateHabitSchedule) private var validateHabitScheduleUseCase
-    @ObservationIgnored @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
-    @ObservationIgnored @Injected(\.debugLogger) private var logger
-    @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
+    @ObservationIgnored @Injected(\.isHabitCompleted) var isHabitCompleted
+    @ObservationIgnored @Injected(\.calculateDailyProgress) var calculateDailyProgress
+    @ObservationIgnored @Injected(\.isScheduledDay) var isScheduledDay
+    @ObservationIgnored @Injected(\.validateHabitSchedule) var validateHabitScheduleUseCase
+    @ObservationIgnored @Injected(\.getSingleHabitLogs) var getSingleHabitLogs
+    @ObservationIgnored @Injected(\.getBatchLogs) var getBatchLogs
+    @ObservationIgnored @Injected(\.debugLogger) var logger
+    @ObservationIgnored @Injected(\.timezoneService) var timezoneService
+    @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     
     // MARK: - Shared ViewModels
     
     // MARK: - Data State (Unified)
-    public private(set) var habitsData = HabitsData(habits: [], categories: [])
-    public private(set) var isLoading = false
-    public private(set) var error: Error?
-    public private(set) var isCreating = false
-    public private(set) var isUpdating = false
-    public private(set) var isDeleting = false
-    public private(set) var isReordering = false
+    public var habitsData = HabitsData(habits: [], categories: [])
+    public var isLoading = false
+    public var error: Error?
+    public var isCreating = false
+    public var isUpdating = false
+    public var isDeleting = false
+    public var isReordering = false
 
     /// Track if initial data has been loaded to prevent duplicate loads during startup
     @ObservationIgnored private var hasLoadedInitialData = false
@@ -43,10 +45,10 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     @ObservationIgnored private var notificationCoalesceTask: Task<Void, Never>?
 
     /// Task for pending assistant reopen after paywall dismissal (cancellable to prevent race conditions)
-    @ObservationIgnored private var pendingAssistantReopenTask: Task<Void, Never>?
+    @ObservationIgnored var pendingAssistantReopenTask: Task<Void, Never>?
 
     /// Task for pending paywall show after assistant dismissal (cancellable to prevent race conditions)
-    @ObservationIgnored private var pendingPaywallShowTask: Task<Void, Never>?
+    @ObservationIgnored var pendingPaywallShowTask: Task<Void, Never>?
 
     /// Track view visibility for tab switch detection
     public var isViewVisible: Bool = false
@@ -82,6 +84,14 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Updated during load and when view becomes visible to ensure banner state is correct.
     public private(set) var cachedCanCreateMoreHabits: Bool = true
 
+    /// Cached premium user status for UI components that need to show/hide premium features.
+    /// Updated during load and when view becomes visible.
+    public private(set) var isPremiumUser: Bool = false
+
+    /// Today's completion percentage for the avatar progress ring.
+    /// Calculated during load based on scheduled habits completed today.
+    public private(set) var todayCompletionPercentage: Double?
+
     /// Check if user can create more habits based on current count
     public func canCreateMoreHabits() async -> Bool {
         await checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
@@ -108,6 +118,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Refresh the cached premium status. Call when view appears or after potential status changes.
     public func refreshPremiumStatus() async {
         cachedCanCreateMoreHabits = await canCreateMoreHabits()
+        isPremiumUser = await checkPremiumStatus.execute()
     }
     
     /// Filtered habits based on selected category and active categories only
@@ -195,6 +206,10 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
             Task { @MainActor in
                 await refreshPremiumStatus()
             }
+        } else {
+            // Cancel any pending background tasks when view disappears
+            notificationCoalesceTask?.cancel()
+            notificationCoalesceTask = nil
         }
     }
 
@@ -212,6 +227,9 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
             // Always update original category order to include newly added categories
             originalCategoryOrder = habitsData.categories
+
+            // Calculate today's completion percentage for the avatar progress ring
+            todayCompletionPercentage = await calculateTodayCompletionPercentage()
 
             // Track performance metrics
             let loadTime = Date().timeIntervalSince(startTime)
@@ -237,7 +255,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
 
     /// Posts habitsDataDidChange notification with coalescing to prevent spam.
     /// Multiple rapid calls within 100ms are coalesced into a single notification.
-    private func postCoalescedDataChangeNotification() {
+    func postCoalescedDataChangeNotification() {
         // Cancel any pending notification
         notificationCoalesceTask?.cancel()
 
@@ -250,153 +268,6 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         }
     }
 
-    public func create(_ habit: Habit) async -> Bool {
-        isCreating = true
-        error = nil
-        
-        do {
-            _ = try await createHabit.execute(habit)
-
-            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
-            postCoalescedDataChangeNotification()
-
-            await refresh() // Refresh the list
-            isCreating = false
-
-            // Track habit creation
-            userActionTracker.track(.habitCreated(
-                habitId: habit.id.uuidString,
-                habitName: habit.name,
-                habitType: habit.kind == .binary ? "binary" : "numeric"
-            ))
-
-            return true
-        } catch {
-            self.error = error
-            isCreating = false
-            userActionTracker.trackError(error, context: "habit_create", additionalProperties: ["habit_name": habit.name, "habit_type": habit.kind == .binary ? "binary" : "numeric"])
-            return false
-        }
-    }
-    
-    public func update(_ habit: Habit) async -> Bool {
-        isUpdating = true
-        error = nil
-        
-        do {
-            try await updateHabit.execute(habit)
-
-            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
-            postCoalescedDataChangeNotification()
-
-            await refresh() // Refresh the list
-            isUpdating = false
-
-            // Track habit update
-            userActionTracker.track(.habitUpdated(
-                habitId: habit.id.uuidString,
-                habitName: habit.name
-            ))
-
-            return true
-        } catch {
-            self.error = error
-            isUpdating = false
-            userActionTracker.trackError(error, context: "habit_update", additionalProperties: ["habit_id": habit.id.uuidString, "habit_name": habit.name])
-            return false
-        }
-    }
-    
-    public func delete(id: UUID) async -> Bool {
-        isDeleting = true
-        error = nil
-        
-        // Capture habit info before deletion for tracking
-        let habitToDelete = habitsData.habits.first { $0.id == id }
-        
-        do {
-            try await deleteHabit.execute(id: id)
-
-            // Notify other tabs (Overview) to refresh - coalesced to prevent spam
-            postCoalescedDataChangeNotification()
-
-            await refresh() // Refresh the list
-            isDeleting = false
-
-            // Track habit deletion
-            if let habit = habitToDelete {
-                userActionTracker.track(.habitDeleted(
-                    habitId: habit.id.uuidString,
-                    habitName: habit.name
-                ))
-            }
-
-            return true
-        } catch {
-            self.error = error
-            isDeleting = false
-            userActionTracker.trackError(error, context: "habit_delete", additionalProperties: ["habit_id": id.uuidString])
-            return false
-        }
-    }
-    
-    public func toggleActiveStatus(id: UUID) async -> Bool {
-        isUpdating = true
-        error = nil
-        
-        // Capture habit info before toggle for tracking
-        let habitToToggle = habitsData.habits.first { $0.id == id }
-        
-        do {
-            _ = try await toggleHabitActiveStatus.execute(id: id)
-            await refresh() // Refresh the list
-            isUpdating = false
-            
-            // Track habit activation/deactivation
-            if let habit = habitToToggle {
-                if habit.isActive {
-                    // Was active, now archived
-                    userActionTracker.track(.habitArchived(
-                        habitId: habit.id.uuidString,
-                        habitName: habit.name
-                    ))
-                } else {
-                    // Was inactive, now restored
-                    userActionTracker.track(.habitRestored(
-                        habitId: habit.id.uuidString,
-                        habitName: habit.name
-                    ))
-                }
-            }
-            
-            return true
-        } catch {
-            self.error = error
-            isUpdating = false
-            userActionTracker.trackError(error, context: "habit_toggle_status", additionalProperties: ["habit_id": id.uuidString])
-            return false
-        }
-    }
-    
-    public func reorderHabits(_ newOrder: [Habit]) async -> Bool {
-        isReordering = true
-        error = nil
-
-        do {
-            try await reorderHabits.execute(newOrder)
-            // Update local state immediately for smooth UI
-            habitsData = HabitsData(habits: newOrder, categories: habitsData.categories)
-            isReordering = false
-            return true
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "habit_reorder", additionalProperties: ["habits_count": newOrder.count])
-            await refresh() // Reload on error to restore correct order
-            isReordering = false
-            return false
-        }
-    }
-    
     public func retry() async {
         await refresh()
     }
@@ -412,20 +283,6 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
         HabitDetailViewModel(habit: habit)
     }
 
-    /// Create habit from suggestion (for assistant)
-    /// Note: Feature gating is handled by CreateHabitFromSuggestion UseCase
-    /// and HabitsAssistantSheet's onShowPaywall callback
-    public func createHabitFromSuggestion(_ suggestion: HabitSuggestion) async -> CreateHabitFromSuggestionResult {
-        let result = await createHabitFromSuggestionUseCase.execute(suggestion)
-
-        // Only notify on actual data mutation, not on idempotent no-ops (.alreadyExists)
-        if result.didMutateData {
-            NotificationCenter.default.post(name: .habitsDataDidChange, object: nil)
-        }
-
-        return result
-    }
-    
     /// Handle create habit button tap from toolbar
     public func handleCreateHabitTap() {
         // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
@@ -470,200 +327,5 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Select a habit for editing
     public func selectHabit(_ habit: Habit) {
         selectedHabit = habit
-    }
-    
-    // MARK: - Habit Completion Methods
-
-    /// Check if a habit is completed today using IsHabitCompletedUseCase
-    public func isHabitCompletedToday(_ habit: Habit) async -> Bool {
-        do {
-            // Use dedicated UseCase to get logs for a single habit today
-            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-            let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
-            return isHabitCompleted.execute(habit: habit, on: today, logs: logs, timezone: displayTimezone)
-        } catch {
-            logger.log(
-                "Failed to check habit completion",
-                level: .error,
-                category: .dataIntegrity,
-                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
-            )
-            return false
-        }
-    }
-
-    /// Get current progress for a habit today using CalculateDailyProgressUseCase
-    public func getCurrentProgress(for habit: Habit) async -> Double {
-        do {
-            // Use dedicated UseCase to get logs for a single habit today
-            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-            let logs = try await getSingleHabitLogs.execute(for: habit.id, from: today, to: today)
-            return calculateDailyProgress.execute(habit: habit, logs: logs, for: today, timezone: displayTimezone)
-        } catch {
-            logger.log(
-                "Failed to get habit progress",
-                level: .error,
-                category: .dataIntegrity,
-                metadata: ["habit_id": habit.id.uuidString, "error": error.localizedDescription]
-            )
-            return 0.0
-        }
-    }
-
-    /// Check if a habit should be shown as actionable today using IsScheduledDayUseCase
-    public func isHabitActionableToday(_ habit: Habit) -> Bool {
-        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-        return isScheduledDay.execute(habit: habit, date: today, timezone: displayTimezone)
-    }
-
-    /// Get schedule validation message for a habit
-    public func getScheduleValidationMessage(for habit: Habit) async -> String? {
-        do {
-            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-            _ = try await validateHabitScheduleUseCase.execute(habit: habit, date: today)
-            return nil // No validation errors
-        } catch {
-            return error.localizedDescription
-        }
-    }
-
-    /// Get the schedule status for a habit today
-    public func getScheduleStatus(for habit: Habit) -> HabitScheduleStatus {
-        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-        return HabitScheduleStatus.forHabit(habit, date: today, isScheduledDay: isScheduledDay, timezone: displayTimezone)
-    }
-
-    /// Check if a habit's logging should be disabled based on schedule validation
-    public func shouldDisableLogging(for habit: Habit) async -> Bool {
-        do {
-            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-            let validationResult = try await validateHabitScheduleUseCase.execute(habit: habit, date: today)
-            return !validationResult.isValid
-        } catch {
-            return true // Disable if validation fails
-        }
-    }
-
-    /// Get validation result for a habit (used for real-time UI feedback)
-    public func getValidationResult(for habit: Habit) async -> HabitScheduleValidationResult? {
-        do {
-            let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
-            return try await validateHabitScheduleUseCase.execute(habit: habit, date: today)
-        } catch {
-            return nil
-        }
-    }
-    
-    // MARK: - Assistant Navigation
-
-    /// Handle habit assistant button tap
-    public func handleAssistantTap(source: String = "toolbar") {
-        // Cancel any pending reopen tasks to prevent race conditions
-        // (user is manually opening, so we don't need the delayed reopen)
-        cancelPendingAssistantPaywallTasks()
-
-        userActionTracker.track(.habitsAssistantOpened(source: source == "emptyState" ? .emptyState : .habitsPage))
-        showingHabitAssistant = true
-    }
-
-    /// Cancel all pending assistant/paywall tasks and reset flags
-    /// Call this when user takes an action that should override any pending async operations
-    private func cancelPendingAssistantPaywallTasks() {
-        pendingAssistantReopenTask?.cancel()
-        pendingAssistantReopenTask = nil
-        pendingPaywallShowTask?.cancel()
-        pendingPaywallShowTask = nil
-
-        // Reset flags to clean state
-        shouldReopenAssistantAfterPaywall = false
-        pendingPaywallAfterAssistantDismiss = false
-        isHandlingPaywallDismissal = false
-    }
-    
-    /// Dismiss assistant and show paywall (called from assistant's upgrade button)
-    /// Sets flag to show paywall after assistant dismissal completes
-    public func dismissAssistantAndShowPaywall() {
-        // Cancel any existing pending tasks before setting up new flow
-        pendingAssistantReopenTask?.cancel()
-        pendingAssistantReopenTask = nil
-        pendingPaywallShowTask?.cancel()
-        pendingPaywallShowTask = nil
-
-        pendingPaywallAfterAssistantDismiss = true
-        shouldReopenAssistantAfterPaywall = true
-        showingHabitAssistant = false
-    }
-    
-    /// Handle paywall dismissal
-    public func handlePaywallDismissal() {
-        // Guard against multiple calls
-        guard !isHandlingPaywallDismissal else { return }
-
-        // Track paywall dismissal
-        paywallViewModel.trackPaywallDismissed()
-
-        // Refresh premium status in case user purchased
-        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-        Task { @MainActor in
-            await refreshPremiumStatus()
-        }
-
-        isHandlingPaywallDismissal = true
-
-        if shouldReopenAssistantAfterPaywall {
-            // Reset the flag
-            shouldReopenAssistantAfterPaywall = false
-
-            // Cancel any existing pending reopen task
-            pendingAssistantReopenTask?.cancel()
-
-            // Wait for paywall dismissal animation to complete before reopening assistant
-            // Using a cancellable Task instead of DispatchQueue to prevent race conditions
-            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-            pendingAssistantReopenTask = Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.0))
-                guard !Task.isCancelled else { return }
-                showingHabitAssistant = true
-                isHandlingPaywallDismissal = false
-            }
-        } else {
-            isHandlingPaywallDismissal = false
-        }
-    }
-    
-    /// Handle when assistant sheet is dismissed - refresh data and show pending paywall
-    public func handleAssistantDismissal() {
-        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-        Task { @MainActor in
-            await refresh()
-        }
-
-        // Check if we need to show paywall after assistant dismissal
-        if pendingPaywallAfterAssistantDismiss {
-            pendingPaywallAfterAssistantDismiss = false
-
-            // Cancel any existing pending paywall task
-            pendingPaywallShowTask?.cancel()
-
-            // Small delay to let the sheet dismissal animation complete
-            // Using a cancellable Task to prevent race conditions
-            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-            pendingPaywallShowTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(350))
-                guard !Task.isCancelled else { return }
-                await showPaywall()
-            }
-        }
-    }
-    
-    /// Handle category filter selection
-    public func selectFilterCategory(_ category: HabitCategory?) {
-        selectedFilterCategory = category
-    }
-
-    /// Select a category filter by ID (used for deep linking from stats)
-    public func selectFilterCategoryById(_ categoryId: String) {
-        guard let matchedCategory = categories.first(where: { $0.id == categoryId }) else { return }
-        selectFilterCategory(matchedCategory)
     }
 }
