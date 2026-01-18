@@ -11,6 +11,8 @@ public struct StatsView: View {
 
     @State private var showingProgressTrendInfo = false
     @State private var showingHabitPatternsInfo = false
+    @State private var showingPeriodStreaksInfo = false
+    @State private var showingCategoryPerformanceInfo = false
     @State private var isPremiumUser = false
 
     public init(vm: StatsViewModel) {
@@ -171,6 +173,32 @@ public struct StatsView: View {
                     Strings.Stats.habitPatternsDetail3
                 ],
                 example: Strings.Stats.habitPatternsExample
+            )
+        }
+        .sheet(isPresented: $showingPeriodStreaksInfo) {
+            ChartInfoSheet(
+                title: Strings.Stats.periodStreaksTitle,
+                icon: "flame.fill",
+                description: Strings.Stats.periodStreaksDescription,
+                details: [
+                    Strings.Stats.periodStreaksDetail1,
+                    Strings.Stats.periodStreaksDetail2,
+                    Strings.Stats.periodStreaksDetail3
+                ],
+                example: Strings.Stats.periodStreaksExample
+            )
+        }
+        .sheet(isPresented: $showingCategoryPerformanceInfo) {
+            ChartInfoSheet(
+                title: Strings.Stats.categoryPerformanceTitle,
+                icon: "square.grid.3x3.fill",
+                description: Strings.Stats.categoryPerformanceDescription,
+                details: [
+                    Strings.Stats.categoryPerformanceDetail1,
+                    Strings.Stats.categoryPerformanceDetail2,
+                    Strings.Stats.categoryPerformanceDetail3
+                ],
+                example: Strings.Stats.categoryPerformanceExample
             )
         }
     }
@@ -376,6 +404,15 @@ public struct StatsView: View {
                 Text(Strings.Stats.performanceDuringPeriod).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
+            Button {
+                HapticFeedbackService.shared.trigger(.light)
+                showingPeriodStreaksInfo = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -428,6 +465,15 @@ public struct StatsView: View {
             Image(systemName: "square.grid.3x3.fill").font(.title2).foregroundColor(.blue)
             Text(Strings.Stats.categoryPerformance).font(.headline).foregroundColor(.primary)
             Spacer()
+            Button {
+                HapticFeedbackService.shared.trigger(.light)
+                showingCategoryPerformanceInfo = true
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
         }
     }
 

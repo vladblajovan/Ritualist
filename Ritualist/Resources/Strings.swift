@@ -820,6 +820,22 @@ public enum Strings {
         public static let habitPatternsDetail3 = String(localized: "stats.habitPatternsInfo.detail3")
         public static let habitPatternsExample = String(localized: "stats.habitPatternsInfo.example")
 
+        // Period Streaks Info Sheet
+        public static let periodStreaksTitle = String(localized: "stats.periodStreaksInfo.title")
+        public static let periodStreaksDescription = String(localized: "stats.periodStreaksInfo.description")
+        public static let periodStreaksDetail1 = String(localized: "stats.periodStreaksInfo.detail1")
+        public static let periodStreaksDetail2 = String(localized: "stats.periodStreaksInfo.detail2")
+        public static let periodStreaksDetail3 = String(localized: "stats.periodStreaksInfo.detail3")
+        public static let periodStreaksExample = String(localized: "stats.periodStreaksInfo.example")
+
+        // Category Performance Info Sheet
+        public static let categoryPerformanceTitle = String(localized: "stats.categoryPerformanceInfo.title")
+        public static let categoryPerformanceDescription = String(localized: "stats.categoryPerformanceInfo.description")
+        public static let categoryPerformanceDetail1 = String(localized: "stats.categoryPerformanceInfo.detail1")
+        public static let categoryPerformanceDetail2 = String(localized: "stats.categoryPerformanceInfo.detail2")
+        public static let categoryPerformanceDetail3 = String(localized: "stats.categoryPerformanceInfo.detail3")
+        public static let categoryPerformanceExample = String(localized: "stats.categoryPerformanceInfo.example")
+
         // Consistency Heatmap
         public static let consistencyHeatmap = String(localized: "stats.consistencyHeatmap")
         public static let selectHabit = String(localized: "stats.selectHabit")

@@ -9746,6 +9746,72 @@
         }
       }
     },
+    "stats.categoryPerformanceInfo.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how well you're doing in each category. Track progress by life area."
+          }
+        }
+      }
+    },
+    "stats.categoryPerformanceInfo.detail1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows completion rate for each category during the selected time period"
+          }
+        }
+      }
+    },
+    "stats.categoryPerformanceInfo.detail2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap any category to view its habits and make quick adjustments"
+          }
+        }
+      }
+    },
+    "stats.categoryPerformanceInfo.detail3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color coding: green = high, yellow = medium, red = low completion"
+          }
+        }
+      }
+    },
+    "stats.categoryPerformanceInfo.example" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Health at 90% but Learning at 40%? Try simplifying your learning habits"
+          }
+        }
+      }
+    },
+    "stats.categoryPerformanceInfo.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category Performance"
+          }
+        }
+      }
+    },
     "stats.completeToUnlockInsights" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10077,6 +10143,72 @@
       }
     },
     "stats.periodStreaks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period Streaks"
+          }
+        }
+      }
+    },
+    "stats.periodStreaksInfo.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track consistency with streaks. Build momentum with consecutive completions."
+          }
+        }
+      }
+    },
+    "stats.periodStreaksInfo.detail1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfect Days shows how many days you completed ALL scheduled habits"
+          }
+        }
+      }
+    },
+    "stats.periodStreaksInfo.detail2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peak shows your longest consecutive streak of perfect days during this period"
+          }
+        }
+      }
+    },
+    "stats.periodStreaksInfo.detail3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consistency score measures your overall reliability based on completion patterns"
+          }
+        }
+      }
+    },
+    "stats.periodStreaksInfo.example" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A 5-day peak = 5 consecutive days with all habits completed"
+          }
+        }
+      }
+    },
+    "stats.periodStreaksInfo.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
