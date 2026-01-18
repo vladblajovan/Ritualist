@@ -78,6 +78,14 @@ public struct HabitsRoot: View {
                 await vm.refresh()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Refresh premium status when app returns from background
+            // Handles cases where subscription status may have changed (expired, renewed via App Store)
+            // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
+            Task { @MainActor in
+                await vm.refreshPremiumStatus()
+            }
+        }
         .sheet(
             isPresented: $showingCategoryManagement,
             onDismiss: {

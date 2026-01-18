@@ -60,6 +60,9 @@ public final class InspirationCardViewModel {
     @ObservationIgnored private var lastEvaluatedTriggerSet: Set<InspirationTrigger> = []
     @ObservationIgnored private var cachedUserName: String?
 
+    /// Tracks the current inspiration check task to prevent concurrent executions (Task storm prevention)
+    @ObservationIgnored private var inspirationCheckTask: Task<Void, Never>?
+
     // MARK: - Dependencies
 
     @ObservationIgnored @Injected(\.personalizedMessageGenerator) private var personalizedMessageGenerator
@@ -202,6 +205,11 @@ public final class InspirationCardViewModel {
     }
 
     public func checkAndShowInspirationCard() {
+        // CRITICAL: Always cancel previous task FIRST, even before early-return guards
+        // Without this, navigating to past dates leaves old tasks running checkComebackStory()
+        // which fetches ALL habits individually, causing app freezing during rapid scrolling
+        inspirationCheckTask?.cancel()
+
         guard isViewingToday, let summary = todaysSummary else {
             return
         }
@@ -211,12 +219,18 @@ public final class InspirationCardViewModel {
         }
 
         // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-        Task { @MainActor in
+        inspirationCheckTask = Task { @MainActor in
+            // Early exit if task was cancelled while waiting to start
+            guard !Task.isCancelled else { return }
+
             let now = Date()
             let isComebackStory = await patternAnalyzer.checkComebackStory(
                 currentCompletion: summary.completionPercentage,
                 timezone: displayTimezone
             )
+
+            // Check cancellation after async work
+            guard !Task.isCancelled else { return }
 
             let context = InspirationTriggerEvaluator.Context(
                 completionRate: summary.completionPercentage,
@@ -234,6 +248,9 @@ public final class InspirationCardViewModel {
                 triggers: triggers,
                 dismissedToday: dismissedTriggersToday
             )
+
+            // Check cancellation before state updates
+            guard !Task.isCancelled else { return }
 
             if !availableTriggers.isEmpty {
                 let newTriggerSet = Set(availableTriggers)

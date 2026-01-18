@@ -59,6 +59,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
     /// When true, loadData() will re-run after current load completes
     @ObservationIgnored private var needsRefreshAfterLoad = false
 
+    /// Tracks child VM configuration task to prevent Task storms
+    @ObservationIgnored private var childVMConfigTask: Task<Void, Never>?
+
+    /// Tracks personality insights loading task to prevent Task storms
+    @ObservationIgnored private var personalityInsightsTask: Task<Void, Never>?
+
     /// Public accessor for view to check if initial load has completed
     public var hasInitialDataLoaded: Bool {
         hasLoadedInitialData
@@ -377,8 +383,12 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
             // Check if user is over the free tier habit limit
             await checkHabitLimitStatus(habitCount: overviewData.habits.count)
 
+            // Cancel any previous personality insights task to prevent Task storms
+            personalityInsightsTask?.cancel()
+
             // Load personality insights separately (non-blocking)
-            Task { @MainActor in
+            personalityInsightsTask = Task { @MainActor in
+                guard !Task.isCancelled else { return }
                 await personalityVM.loadPersonalityInsights()
             }
 
@@ -1055,9 +1065,14 @@ public final class OverviewViewModel { // swiftlint:disable:this type_body_lengt
         self.activeStreaks = extractActiveStreaks(from: data)
         self.monthlyCompletionData = extractMonthlyData(from: data)
 
+        // Cancel any previous child VM configuration task to prevent Task storms
+        childVMConfigTask?.cancel()
+
         // Update child VM context
-        Task { @MainActor in
+        childVMConfigTask = Task { @MainActor in
+            guard !Task.isCancelled else { return }
             let userName = await getUserName()
+            guard !Task.isCancelled else { return }
             configureChildViewModels(userName: userName)
             inspirationVM.checkAndShowInspirationCard()
         }

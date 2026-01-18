@@ -53,12 +53,19 @@ public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol 
         let yesterday = CalendarUtils.addDaysLocal(-1, to: Date(), timezone: timezone)
 
         do {
+            // Check cancellation before expensive database query
+            try Task.checkCancellation()
+
             let habits = try await getActiveHabits.execute()
             guard !habits.isEmpty else { return false }
 
             var completedCount = 0
 
             for habit in habits {
+                // Check cancellation in loop to allow early exit during rapid date changes
+                // This prevents "Task storm" where multiple cancelled tasks continue DB queries
+                try Task.checkCancellation()
+
                 let logs = try await getLogs.execute(
                     for: habit.id,
                     since: yesterday,
@@ -103,6 +110,9 @@ public final class CompletionPatternAnalyzer: CompletionPatternAnalyzerProtocol 
 
             return isComebackStory
 
+        } catch is CancellationError {
+            // Task was cancelled (e.g., user scrolled to different date) - this is expected
+            return false
         } catch {
             logger.log(
                 "Comeback story detection failed",
