@@ -210,7 +210,9 @@ public struct OverviewView: View {
     
     @ViewBuilder
     private func calendarSection(proxy: ScrollViewProxy) -> some View {
-        if vm.shouldShowActiveStreaks || vm.isLoading {
+        // Note: Removed `|| vm.isLoading` condition to prevent layout flash.
+        // StreaksCard handles its own loading state internally with a ProgressView.
+        if vm.shouldShowActiveStreaks {
             calendarWithStreaks(proxy: proxy)
         } else {
             calendarOnly(proxy: proxy)

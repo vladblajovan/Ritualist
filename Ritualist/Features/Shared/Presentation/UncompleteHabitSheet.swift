@@ -92,7 +92,6 @@ public struct UncompleteHabitSheet: View {
         .background(.clear)
         .presentationDetents(isIPad ? [.medium] : [.height(280)])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
         .onAppear {
             // Announce sheet to VoiceOver for focus management
             DispatchQueue.main.asyncAfter(deadline: .now() + AccessibilityConfig.voiceOverAnnouncementDelay) {

@@ -88,7 +88,6 @@ public struct PaywallView: View {
         }
         .scrollContentBackground(.hidden)
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
         .alert("Purchase Error", isPresented: $showingError) {
             Button(Strings.Common.ok) {
                 vm.dismissError()

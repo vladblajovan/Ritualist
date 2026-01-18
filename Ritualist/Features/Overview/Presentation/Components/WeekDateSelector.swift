@@ -89,6 +89,20 @@ struct WeekDateSelector: View {
         HapticFeedbackService.shared.trigger(.light)
     }
 
+    /// Whether the currently visible week contains today
+    /// Used to show "Return to Today" button when user swipes to a different week
+    private var isCurrentWeekContainingToday: Bool {
+        guard !weeks.isEmpty, currentWeekIndex < weeks.count else { return false }
+        let currentWeek = weeks[currentWeekIndex]
+        return currentWeek.contains { CalendarUtils.isTodayLocal($0, timezone: timezone) }
+    }
+
+    /// Whether to show the "Return to Today" button
+    /// Show when: viewing a different week OR selected date is not today
+    private var shouldShowReturnToToday: Bool {
+        !isCurrentWeekContainingToday || !isViewingToday
+    }
+
     /// Find which week index contains the selected date
     /// Returns a bounds-safe index (clamped to valid array range)
     private func weekIndexForDate(_ date: Date) -> Int {
@@ -172,9 +186,14 @@ struct WeekDateSelector: View {
             Spacer()
 
             // Right side: Return to Today button
-            // Always rendered to prevent layout jump, but hidden when viewing today
+            // Always rendered to prevent layout jump, but hidden when not needed
             Button {
                 HapticFeedbackService.shared.trigger(.light)
+                // Reset to week containing today (handles case where user only swiped, didn't select)
+                let todayWeekIndex = weekIndexForDate(Date())
+                if currentWeekIndex != todayWeekIndex {
+                    currentWeekIndex = todayWeekIndex
+                }
                 onGoToToday()
             } label: {
                 HStack(spacing: 4) {
@@ -191,10 +210,10 @@ struct WeekDateSelector: View {
                 .cornerRadius(CardDesign.innerCornerRadius)
             }
             .buttonStyle(PlainButtonStyle())
-            .opacity(isViewingToday ? 0 : 1)
-            .disabled(isViewingToday)
+            .opacity(shouldShowReturnToToday ? 1 : 0)
+            .disabled(!shouldShowReturnToToday)
             .accessibilityLabel("Return to today")
-            .accessibilityHidden(isViewingToday)
+            .accessibilityHidden(!shouldShowReturnToToday)
             .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
         }
     }

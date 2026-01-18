@@ -50,7 +50,6 @@ public struct PersonalityAnalysisDeepLinkSheet: View {
         .background(.clear)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
         .onAppear {
             handleNotificationAction()
             clearNotificationBadge()

@@ -146,6 +146,8 @@ public struct AddReminderSheet: View {
                 }
             }
         }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 

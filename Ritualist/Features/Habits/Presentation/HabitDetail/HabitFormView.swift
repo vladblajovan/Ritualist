@@ -6,18 +6,16 @@
 //
 
 import SwiftUI
-import FactoryKit
 import RitualistCore
 
 public struct HabitFormView: View {
     @Bindable var vm: HabitDetailViewModel
-    @Binding var showingCategoryManagement: Bool
     let onDelete: (() -> Void)?
 
     public var body: some View {
         List {
             BasicInfoSection(vm: vm)
-            CategorySection(vm: vm, showingCategoryManagement: $showingCategoryManagement)
+            CategorySection(vm: vm)
             ScheduleSection(vm: vm)
             ReminderSection(vm: vm)
             LocationConfigurationSection(vm: vm)

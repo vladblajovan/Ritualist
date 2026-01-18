@@ -236,11 +236,13 @@ public extension GenericRowView {
     static func habitRowWithSchedule(
         habit: Habit,
         scheduleStatus: HabitScheduleStatus,
+        isEditMode: Bool = false,
         onTap: @escaping () -> Void
     ) -> some View {
         HabitRowWithSplitZones(
             habit: habit,
             scheduleStatus: scheduleStatus,
+            isEditMode: isEditMode,
             onTap: onTap
         )
     }
@@ -358,6 +360,7 @@ public extension GenericRowView {
 private struct HabitRowWithSplitZones: View {
     let habit: Habit
     let scheduleStatus: HabitScheduleStatus
+    let isEditMode: Bool
     let onTap: () -> Void
 
     @Injected(\.subscriptionService) private var subscriptionService
@@ -373,13 +376,15 @@ private struct HabitRowWithSplitZones: View {
             // LEFT ZONE: Main content - tappable for habit details
             Button(action: onTap) {
                 HStack(spacing: Spacing.medium) {
-                    // Habit emoji icon
-                    ZStack {
-                        Circle()
-                            .fill(Color(hex: habit.colorHex).opacity(0.1))
-                            .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
-                        Text(habit.emoji ?? "•")
-                            .font(.title2)
+                    // Habit emoji icon - hidden in edit mode for cleaner reordering
+                    if !isEditMode {
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: habit.colorHex).opacity(0.1))
+                                .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
+                            Text(habit.emoji ?? "•")
+                                .font(.title2)
+                        }
                     }
 
                     // Content Section
@@ -413,34 +418,36 @@ private struct HabitRowWithSplitZones: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            // RIGHT ZONE: Icon area - tappable for info sheet
-            Button {
-                showingIconInfoSheet = true
-            } label: {
-                HStack(spacing: 6) {
-                    // Time-based reminders indicator (only for premium users with reminders)
-                    if isPremiumUser && !habit.reminders.isEmpty {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.orange)
-                            .accessibilityLabel(Strings.Components.timeRemindersEnabled)
-                    }
+            // RIGHT ZONE: Icon area - tappable for info sheet (hidden in edit mode)
+            if !isEditMode {
+                Button {
+                    showingIconInfoSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        // Time-based reminders indicator (only for premium users with reminders)
+                        if isPremiumUser && !habit.reminders.isEmpty {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.orange)
+                                .accessibilityLabel(Strings.Components.timeRemindersEnabled)
+                        }
 
-                    // Location indicator (only for premium users with location enabled)
-                    if isPremiumUser && habit.locationConfiguration?.isEnabled == true {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.purple)
-                            .accessibilityLabel(Strings.Components.locationRemindersEnabled)
-                    }
+                        // Location indicator (only for premium users with location enabled)
+                        if isPremiumUser && habit.locationConfiguration?.isEnabled == true {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.purple)
+                                .accessibilityLabel(Strings.Components.locationRemindersEnabled)
+                        }
 
-                    // Schedule indicator - use .xlarge size (14pt) to match other indicators
-                    HabitScheduleIndicator(status: scheduleStatus, size: .xlarge, style: .iconOnly)
+                        // Schedule indicator - use .xlarge size (14pt) to match other indicators
+                        HabitScheduleIndicator(status: scheduleStatus, size: .xlarge, style: .iconOnly)
+                    }
+                    .padding(.leading, 8)
+                    .contentShape(Rectangle())
                 }
-                .padding(.leading, 8)
-                .contentShape(Rectangle())
+                .buttonStyle(PlainButtonStyle())
             }
-            .buttonStyle(PlainButtonStyle())
         }
         .opacity(isEnabled ? 1.0 : 0.7)
         .sheet(isPresented: $showingIconInfoSheet) {
@@ -544,6 +551,8 @@ private struct HabitIconInfoSheet: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .presentationDragIndicator(.visible)
     }
 }
 

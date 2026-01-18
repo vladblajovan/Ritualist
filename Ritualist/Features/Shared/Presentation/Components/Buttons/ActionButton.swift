@@ -33,26 +33,32 @@ public struct ActionButton: View {
         self.action = action
     }
     
+    @ViewBuilder
     public var body: some View {
-        Group {
-            if style == .glass26, #available(iOS 26.0, *) {
-                Button(action: isDisabled || isLoading ? {} : action) {
-                    buttonContent
-                }
-                .buttonStyle(IOS26GlassButtonStyle())
-            } else {
-                Button(action: isDisabled || isLoading ? {} : action) {
-                    buttonContent
-                }
-                .buttonStyle(BounceStyle())
+        if style == .glass26 {
+            // Use native .bordered style for iOS 26 Liquid Glass compatibility
+            Button(action: isDisabled || isLoading ? {} : action) {
+                buttonContent
             }
+            .buttonStyle(.bordered)
+            .disabled(isDisabled || isLoading)
+            .opacity(isDisabled ? 0.6 : 1.0)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityHint(accessibilityHint)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityValue(isLoading ? "Loading" : "")
+        } else {
+            Button(action: isDisabled || isLoading ? {} : action) {
+                buttonContent
+            }
+            .buttonStyle(BounceStyle())
+            .disabled(isDisabled || isLoading)
+            .opacity(isDisabled ? 0.6 : 1.0)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityHint(accessibilityHint)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityValue(isLoading ? "Loading" : "")
         }
-        .disabled(isDisabled || isLoading)
-        .opacity(isDisabled ? 0.6 : 1.0)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(accessibilityHint)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityValue(isLoading ? "Loading" : "")
     }
 
     private var accessibilityHint: String {
@@ -298,18 +304,6 @@ public extension ActionButton {
             case .large: return 1.0
             }
         }
-    }
-}
-
-// MARK: - iOS 26 Glass Button Style
-
-@available(iOS 26.0, *)
-private struct IOS26GlassButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

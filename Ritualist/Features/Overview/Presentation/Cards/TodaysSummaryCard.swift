@@ -668,13 +668,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Spacer()
 
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isCompletedViewCompact.toggle()
-                }
+                isCompletedViewCompact.toggle()
             } label: {
                 Image(systemName: isCompletedViewCompact ? "plus.circle" : "minus.circle")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.green)
+                    .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(PlainButtonStyle())
             .accessibilityLabel(isCompletedViewCompact ? "Expand completed habits" : "Collapse completed habits")
@@ -747,13 +746,12 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
             Spacer()
 
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isRemainingViewCompact.toggle()
-                }
+                isRemainingViewCompact.toggle()
             } label: {
                 Image(systemName: isRemainingViewCompact ? "plus.circle" : "minus.circle")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppColors.brand)
+                    .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(PlainButtonStyle())
             .accessibilityLabel(isRemainingViewCompact ? "Expand remaining habits" : "Collapse remaining habits")
@@ -1285,6 +1283,8 @@ private struct NoHabitsScheduledInfoSheet: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .presentationDragIndicator(.visible)
     }
 }
 

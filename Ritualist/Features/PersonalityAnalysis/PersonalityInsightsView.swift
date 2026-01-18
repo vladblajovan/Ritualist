@@ -333,7 +333,6 @@ private struct PersonalityProfileView: View {
             ConfidenceInfoSheet(confidence: profile.confidence)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
-                .presentationBackground(.ultraThinMaterial)
         }
     }
     
@@ -1044,7 +1043,6 @@ struct BigFiveInfoSheet: View {
         .scrollContentBackground(.hidden)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
     }
 
     private func traitInfoCard(_ trait: PersonalityTrait) -> some View {

@@ -142,10 +142,8 @@ struct StreakDetailSheet: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDetents(isIPad ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
     }
     
     static func streakLevelText(for flameCount: Int) -> String {

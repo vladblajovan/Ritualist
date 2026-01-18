@@ -310,6 +310,7 @@ private struct SettingsFormView: View {
                         }
                     }
                 }
+                .contentMargins(.top, 0, for: .scrollContent)
                 .refreshable {
                         await vm.reload()
                         updateLocalState()
@@ -373,7 +374,7 @@ private struct SettingsFormView: View {
                 }
             } // else
         } // Group
-        .navigationTitle(Strings.Settings.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: - Computed Properties

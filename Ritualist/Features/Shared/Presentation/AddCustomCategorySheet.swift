@@ -126,8 +126,9 @@ public struct AddCustomCategorySheet: View {
                 }
             }
         }
+        .presentationDragIndicator(.visible)
     }
-    
+
     private var isFormInvalid: Bool {
         categoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }

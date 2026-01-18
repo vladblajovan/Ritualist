@@ -66,6 +66,7 @@ public struct HabitsAssistantSheet: View {
                 }
             }
         }
+        .presentationDragIndicator(.visible)
         .task {
             await vm.initialize(existingHabits: existingHabits)
         }

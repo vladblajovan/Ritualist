@@ -273,10 +273,8 @@ public struct NumericHabitLogSheetDirect: View { // swiftlint:disable:this type_
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .scrollContentBackground(.hidden)
         .presentationDetents(isIPad ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
         .overlay(
             Group {
                 if isLoading {

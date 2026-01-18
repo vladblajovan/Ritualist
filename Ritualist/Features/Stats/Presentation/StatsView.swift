@@ -143,7 +143,7 @@ public struct StatsView: View {
                 )
                 .frame(height: 150)
 
-                Color(.systemGroupedBackground).opacity(0.03)
+                Color(.systemGroupedBackground)
             }
             .ignoresSafeArea()
         }

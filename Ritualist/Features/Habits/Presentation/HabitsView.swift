@@ -315,7 +315,8 @@ private struct HabitsListView: View {
                             ForEach(vm.filteredHabits, id: \.id) { habit in
                                 GenericRowView.habitRowWithSchedule(
                                     habit: habit,
-                                    scheduleStatus: vm.getScheduleStatus(for: habit)
+                                    scheduleStatus: vm.getScheduleStatus(for: habit),
+                                    isEditMode: editMode?.wrappedValue == .active
                                 ) {
                                     vm.selectHabit(habit)
                                 }

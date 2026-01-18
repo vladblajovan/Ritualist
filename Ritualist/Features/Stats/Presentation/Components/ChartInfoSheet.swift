@@ -98,10 +98,8 @@ struct ChartInfoSheet: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDetents(isIPad ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.ultraThinMaterial)
     }
 }
 
