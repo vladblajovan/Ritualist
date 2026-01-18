@@ -27,6 +27,9 @@ public final class RootTabViewModel {
     /// Flag indicating we need to show returning user welcome once data loads
     public var pendingReturningUserWelcome = false
 
+    /// Task for returning user welcome retry loop (cancellable)
+    @ObservationIgnored var returningUserWelcomeTask: Task<Void, Never>?
+
     /// Flag to show returning user welcome after data loads (deferred onboarding)
     public var showReturningUserWelcome = false
 

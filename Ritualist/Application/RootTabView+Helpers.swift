@@ -74,21 +74,26 @@ extension RootTabView {
 
     /// Handle returning user welcome - show when iCloud data has loaded.
     /// Uses retry logic to wait for both habits AND profile to sync from CloudKit.
+    /// Stores task in viewModel for cancellation when view disappears.
     func handleReturningUserWelcome(retryCount: Int = 0) {
         guard viewModel.pendingReturningUserWelcome else { return }
 
+        // Cancel any existing retry task before starting a new one
+        viewModel.returningUserWelcomeTask?.cancel()
+
         // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-        Task { @MainActor in
+        viewModel.returningUserWelcomeTask = Task { @MainActor in
+            guard !Task.isCancelled else { return }
             await loadCurrentHabits()
+            guard !Task.isCancelled else { return }
             let profile = await loadProfileSafely()
+            guard !Task.isCancelled else { return }
 
             // Check if we have complete data (profile with gender/ageGroup set)
             let hasCompleteData = profile != nil && profile?.gender != nil && profile?.ageGroup != nil
 
             if hasCompleteData {
-                await MainActor.run {
-                    viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
-                }
+                viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
             } else {
                 await handleIncompleteReturningUserData(profile: profile, retryCount: retryCount)
             }
@@ -111,8 +116,12 @@ extension RootTabView {
     }
 
     /// Handles incomplete returning user data with retry logic.
+    /// Checks Task.isCancelled to support early termination when view disappears.
     func handleIncompleteReturningUserData(profile: UserProfile?, retryCount: Int) async {
-        // Retry up to 5 minutes - CloudKit profile/avatar may take longer on slow networks
+        // Check cancellation before retry
+        guard !Task.isCancelled else { return }
+
+        // Retry up to ~2.5 minutes - CloudKit profile/avatar may take longer on slow networks
         if retryCount < SyncConstants.maxRetries {
             logger.log(
                 "☁️ Returning user data incomplete - will retry",
@@ -127,8 +136,21 @@ extension RootTabView {
                 ]
             )
             try? await Task.sleep(for: .seconds(SyncConstants.retryIntervalSeconds))
-            await MainActor.run {
-                handleReturningUserWelcome(retryCount: retryCount + 1)
+
+            // Check cancellation after sleep (view may have disappeared during wait)
+            guard !Task.isCancelled else { return }
+
+            // Continue retry loop within same task (iterative, not recursive)
+            await loadCurrentHabits()
+            guard !Task.isCancelled else { return }
+            let newProfile = await loadProfileSafely()
+            guard !Task.isCancelled else { return }
+
+            let hasCompleteData = newProfile != nil && newProfile?.gender != nil && newProfile?.ageGroup != nil
+            if hasCompleteData {
+                viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: newProfile)
+            } else {
+                await handleIncompleteReturningUserData(profile: newProfile, retryCount: retryCount + 1)
             }
         } else {
             logger.log(
@@ -137,11 +159,10 @@ extension RootTabView {
                 category: .system,
                 metadata: ["has_profile": profile != nil, "has_gender": profile?.gender != nil, "has_ageGroup": profile?.ageGroup != nil]
             )
-            await MainActor.run {
-                viewModel.dismissSyncingDataToast()
-                viewModel.pendingReturningUserWelcome = false
-                viewModel.showStillSyncingToast()
-            }
+            viewModel.dismissSyncingDataToast()
+            viewModel.pendingReturningUserWelcome = false
+            viewModel.returningUserWelcomeTask = nil  // Clean up task reference
+            viewModel.showStillSyncingToast()
         }
     }
 }

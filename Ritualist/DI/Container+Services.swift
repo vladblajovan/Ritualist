@@ -373,7 +373,7 @@ extension Container {
         self {
             CompletionPatternAnalyzer(
                 getActiveHabits: self.getActiveHabits(),
-                getLogs: self.getLogs(),
+                getBatchLogs: self.getBatchLogs(),
                 logger: self.debugLogger()
             )
         }

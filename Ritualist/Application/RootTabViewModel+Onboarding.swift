@@ -195,6 +195,8 @@ extension RootTabViewModel {
         // (via onAppear in RootTabView) to ensure seamless transition
 
         pendingReturningUserWelcome = false
+        returningUserWelcomeTask?.cancel()
+        returningUserWelcomeTask = nil
         syncedDataSummary = summary
         showReturningUserWelcome = true
 

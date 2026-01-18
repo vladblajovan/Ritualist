@@ -86,11 +86,29 @@ extension OverviewViewModel {
     }
 
     /// Sort completed habits by latest log time (most recent first).
+    /// Uses pre-computed dictionary for O(n log n) instead of O(n² × m) complexity.
     func sortCompletedHabitsByLatestLog(_ habits: [Habit], logs: [HabitLog]) -> [Habit] {
-        habits.sorted { habit1, habit2 in
-            let habit1LatestTime = logs.filter { $0.habitID == habit1.id }.map { $0.date }.max() ?? .distantPast
-            let habit2LatestTime = logs.filter { $0.habitID == habit2.id }.map { $0.date }.max() ?? .distantPast
-            return habit1LatestTime > habit2LatestTime
+        // Pre-compute latest log time for each habit (O(m) where m = logs count)
+        var latestLogTimes: [UUID: Date] = [:]
+        for log in logs {
+            if let existing = latestLogTimes[log.habitID] {
+                if log.date > existing {
+                    latestLogTimes[log.habitID] = log.date
+                }
+            } else {
+                latestLogTimes[log.habitID] = log.date
+            }
+        }
+
+        // Sort using pre-computed times (O(n log n) where n = habits count)
+        return habits.sorted { habit1, habit2 in
+            let time1 = latestLogTimes[habit1.id] ?? .distantPast
+            let time2 = latestLogTimes[habit2.id] ?? .distantPast
+            // Secondary sort by habit name for stable ordering when times are equal
+            if time1 == time2 {
+                return habit1.name < habit2.name
+            }
+            return time1 > time2
         }
     }
 
