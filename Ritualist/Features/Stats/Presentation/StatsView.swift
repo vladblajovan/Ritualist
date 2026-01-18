@@ -7,7 +7,6 @@ import FactoryKit
 public struct StatsView: View {
     @Bindable var vm: StatsViewModel
     @Injected(\.debugLogger) private var logger
-    @Injected(\.navigationService) private var navigationService
     @Injected(\.featureGatingService) private var featureGatingService
 
     @State private var showingProgressTrendInfo = false
@@ -435,8 +434,7 @@ public struct StatsView: View {
     @ViewBuilder
     private func categoryRow(category: StatsViewModel.CategoryPerformanceViewModel) -> some View {
         Button {
-            HapticFeedbackService.shared.trigger(.light)
-            navigationService.navigateToHabits(withCategoryId: category.id)
+            vm.navigateToCategory(category.id)
         } label: {
             HStack(spacing: 12) {
                 categoryIndicator(category: category)

@@ -91,7 +91,6 @@ public struct PersonalityInsightsView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .task {
             await viewModel.loadPersonalityInsights()
         }
@@ -943,7 +942,6 @@ private struct ConfidenceInfoSheet: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
     }
 
     private func confidenceLevelRow(_ level: ConfidenceLevel, _ description: String) -> some View {
@@ -1040,7 +1038,6 @@ struct BigFiveInfoSheet: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }

@@ -107,6 +107,7 @@ public final class StatsViewModel {
     @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
     @ObservationIgnored @Injected(\.getConsistencyHeatmapData) private var getConsistencyHeatmapData
     @ObservationIgnored @Injected(\.userDefaultsService) private var userDefaults
+    @ObservationIgnored @Injected(\.navigationService) private var navigationService
 
     /// Cached display timezone for synchronous access in computed properties.
     /// Fetched once on load from TimezoneService.getDisplayTimezone().
@@ -536,6 +537,13 @@ public final class StatsViewModel {
     /// Set view visibility state
     public func setViewVisible(_ visible: Bool) {
         isViewVisible = visible
+    }
+
+    /// Navigate to the habits list filtered by a specific category
+    /// - Parameter categoryId: The ID of the category to filter by
+    public func navigateToCategory(_ categoryId: String) {
+        HapticFeedbackService.shared.trigger(.light)
+        navigationService.navigateToHabits(withCategoryId: categoryId)
     }
 
     /// Internal load implementation

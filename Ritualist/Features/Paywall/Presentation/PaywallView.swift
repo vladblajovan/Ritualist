@@ -86,7 +86,6 @@ public struct PaywallView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDragIndicator(.visible)
         .alert("Purchase Error", isPresented: $showingError) {
             Button(Strings.Common.ok) {

@@ -325,7 +325,6 @@ private struct HomeTimezonePickerView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDragIndicator(.visible)
     }
 

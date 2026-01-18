@@ -316,7 +316,8 @@ private struct HabitsListView: View {
                                 GenericRowView.habitRowWithSchedule(
                                     habit: habit,
                                     scheduleStatus: vm.getScheduleStatus(for: habit),
-                                    isEditMode: editMode?.wrappedValue == .active
+                                    isEditMode: editMode?.wrappedValue == .active,
+                                    isPremiumUser: vm.isPremiumUser
                                 ) {
                                     vm.selectHabit(habit)
                                 }

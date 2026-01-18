@@ -1,5 +1,4 @@
 import SwiftUI
-import FactoryKit
 import RitualistCore
 
 /// A generic row component that replaces all duplicate row implementations across the app
@@ -233,16 +232,19 @@ public extension GenericRowView {
     }
     
     /// For habit rows with emoji, status, and schedule indicator with split hit zones
+    /// - Parameter isPremiumUser: Whether the user has premium subscription (for showing premium indicators)
     static func habitRowWithSchedule(
         habit: Habit,
         scheduleStatus: HabitScheduleStatus,
         isEditMode: Bool = false,
+        isPremiumUser: Bool = false,
         onTap: @escaping () -> Void
     ) -> some View {
         HabitRowWithSplitZones(
             habit: habit,
             scheduleStatus: scheduleStatus,
             isEditMode: isEditMode,
+            isPremiumUser: isPremiumUser,
             onTap: onTap
         )
     }
@@ -361,11 +363,10 @@ private struct HabitRowWithSplitZones: View {
     let habit: Habit
     let scheduleStatus: HabitScheduleStatus
     let isEditMode: Bool
+    let isPremiumUser: Bool
     let onTap: () -> Void
 
-    @Injected(\.subscriptionService) private var subscriptionService
     @State private var showingIconInfoSheet = false
-    @State private var isPremiumUser = false
 
     private var isEnabled: Bool {
         habit.isActive && scheduleStatus.isAvailable
@@ -385,6 +386,7 @@ private struct HabitRowWithSplitZones: View {
                             Text(habit.emoji ?? "•")
                                 .font(.title2)
                         }
+                        .transition(.opacity)
                     }
 
                     // Content Section
@@ -447,14 +449,13 @@ private struct HabitRowWithSplitZones: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PlainButtonStyle())
+                .transition(.opacity)
             }
         }
         .opacity(isEnabled ? 1.0 : 0.7)
+        .animation(.easeInOut(duration: 0.2), value: isEditMode)
         .sheet(isPresented: $showingIconInfoSheet) {
             HabitIconInfoSheet()
-        }
-        .task {
-            isPremiumUser = await subscriptionService.isPremiumUser()
         }
     }
 }
@@ -551,7 +552,6 @@ private struct HabitIconInfoSheet: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDragIndicator(.visible)
     }
 }

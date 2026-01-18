@@ -1283,7 +1283,6 @@ private struct NoHabitsScheduledInfoSheet: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
         .presentationDragIndicator(.visible)
     }
 }

@@ -24,6 +24,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     @ObservationIgnored @Injected(\.getSingleHabitLogs) private var getSingleHabitLogs
     @ObservationIgnored @Injected(\.debugLogger) private var logger
     @ObservationIgnored @Injected(\.timezoneService) private var timezoneService
+    @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
     
     // MARK: - Shared ViewModels
     
@@ -82,6 +83,10 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Updated during load and when view becomes visible to ensure banner state is correct.
     public private(set) var cachedCanCreateMoreHabits: Bool = true
 
+    /// Cached premium user status for UI components that need to show/hide premium features.
+    /// Updated during load and when view becomes visible.
+    public private(set) var isPremiumUser: Bool = false
+
     /// Check if user can create more habits based on current count
     public func canCreateMoreHabits() async -> Bool {
         await checkHabitCreationLimit.execute(currentCount: habitsData.totalHabitsCount)
@@ -108,6 +113,7 @@ public final class HabitsViewModel { // swiftlint:disable:this type_body_length
     /// Refresh the cached premium status. Call when view appears or after potential status changes.
     public func refreshPremiumStatus() async {
         cachedCanCreateMoreHabits = await canCreateMoreHabits()
+        isPremiumUser = await checkPremiumStatus.execute()
     }
     
     /// Filtered habits based on selected category and active categories only
