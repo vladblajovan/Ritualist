@@ -237,6 +237,11 @@ extension OverviewViewModel {
     /// Set view visibility state.
     public func setViewVisible(_ visible: Bool) {
         isViewVisible = visible
+        if !visible {
+            // Cancel any pending background tasks when view disappears
+            childVMConfigTask?.cancel()
+            childVMConfigTask = nil
+        }
     }
 
     /// Process pending numeric habit.

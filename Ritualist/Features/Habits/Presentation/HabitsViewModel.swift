@@ -206,6 +206,10 @@ public final class HabitsViewModel {
             Task { @MainActor in
                 await refreshPremiumStatus()
             }
+        } else {
+            // Cancel any pending background tasks when view disappears
+            notificationCoalesceTask?.cancel()
+            notificationCoalesceTask = nil
         }
     }
 
