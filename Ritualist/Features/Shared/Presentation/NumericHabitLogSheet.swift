@@ -23,7 +23,7 @@ public struct NumericHabitLogSheetDirect: View {
     @State var extraMileText: String?
     @State var loadTask: Task<Void, Never>?
     @State var showCelebration = false
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
 
     var isIPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad

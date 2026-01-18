@@ -22,6 +22,7 @@ public final class HabitsViewModel {
     @ObservationIgnored @Injected(\.isScheduledDay) var isScheduledDay
     @ObservationIgnored @Injected(\.validateHabitSchedule) var validateHabitScheduleUseCase
     @ObservationIgnored @Injected(\.getSingleHabitLogs) var getSingleHabitLogs
+    @ObservationIgnored @Injected(\.getBatchLogs) var getBatchLogs
     @ObservationIgnored @Injected(\.debugLogger) var logger
     @ObservationIgnored @Injected(\.timezoneService) var timezoneService
     @ObservationIgnored @Injected(\.checkPremiumStatus) private var checkPremiumStatus
@@ -86,6 +87,10 @@ public final class HabitsViewModel {
     /// Cached premium user status for UI components that need to show/hide premium features.
     /// Updated during load and when view becomes visible.
     public private(set) var isPremiumUser: Bool = false
+
+    /// Today's completion percentage for the avatar progress ring.
+    /// Calculated during load based on scheduled habits completed today.
+    public private(set) var todayCompletionPercentage: Double?
 
     /// Check if user can create more habits based on current count
     public func canCreateMoreHabits() async -> Bool {
@@ -218,6 +223,9 @@ public final class HabitsViewModel {
 
             // Always update original category order to include newly added categories
             originalCategoryOrder = habitsData.categories
+
+            // Calculate today's completion percentage for the avatar progress ring
+            todayCompletionPercentage = await calculateTodayCompletionPercentage()
 
             // Track performance metrics
             let loadTime = Date().timeIntervalSince(startTime)

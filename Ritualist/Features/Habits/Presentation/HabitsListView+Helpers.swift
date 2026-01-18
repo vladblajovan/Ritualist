@@ -37,7 +37,7 @@ extension HabitsListView {
     @ViewBuilder
     var stickyBrandHeader: some View {
         AppBrandHeader(
-            completionPercentage: nil,
+            completionPercentage: vm.todayCompletionPercentage,
             progressDisplayStyle: .circular,
             actions: headerActions
         )

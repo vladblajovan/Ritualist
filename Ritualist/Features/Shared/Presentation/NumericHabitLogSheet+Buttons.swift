@@ -56,8 +56,6 @@ extension NumericHabitLogSheetDirect {
     /// Done button - dismisses the sheet.
     @ViewBuilder
     func doneButton() -> some View {
-        @Environment(\.dismiss) var dismiss
-
         Button {
             HapticFeedbackService.shared.trigger(.light)
             dismiss()

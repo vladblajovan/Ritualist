@@ -8,6 +8,48 @@
 import Foundation
 import RitualistCore
 
+// MARK: - Today's Completion Percentage
+
+extension HabitsViewModel {
+
+    /// Calculate today's completion percentage for the avatar progress ring.
+    /// Returns the ratio of completed habits to total scheduled habits for today.
+    func calculateTodayCompletionPercentage() async -> Double? {
+        let today = CalendarUtils.startOfDayLocal(for: Date(), timezone: displayTimezone)
+
+        // Get habits scheduled for today (active only)
+        let scheduledHabits = habitsData.activeHabits.filter { habit in
+            isScheduledDay.execute(habit: habit, date: today, timezone: displayTimezone)
+        }
+
+        // No scheduled habits = no percentage to show
+        guard !scheduledHabits.isEmpty else { return nil }
+
+        // Fetch logs for all scheduled habits in a single batch call
+        let habitIds = scheduledHabits.map(\.id)
+        let allLogs: [UUID: [HabitLog]]
+        do {
+            allLogs = try await getBatchLogs.execute(for: habitIds, since: today, until: today, timezone: displayTimezone)
+        } catch {
+            logger.log(
+                "Failed to fetch batch logs for completion percentage",
+                level: .error,
+                category: .dataIntegrity,
+                metadata: ["error": error.localizedDescription]
+            )
+            return nil
+        }
+
+        // Count completed habits
+        let completedCount = scheduledHabits.filter { habit in
+            let logs = allLogs[habit.id] ?? []
+            return isHabitCompleted.execute(habit: habit, on: today, logs: logs, timezone: displayTimezone)
+        }.count
+
+        return Double(completedCount) / Double(scheduledHabits.count)
+    }
+}
+
 // MARK: - Habit Completion & Schedule Methods
 
 extension HabitsViewModel {
