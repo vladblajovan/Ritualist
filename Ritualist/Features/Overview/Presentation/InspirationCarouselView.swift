@@ -42,7 +42,9 @@ struct InspirationCarouselView: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .padding(.horizontal, -Spacing.small) // Extend carousel to compensate for card padding
             .frame(minHeight: 170)
-            .sensoryFeedback(.selection, trigger: currentIndex) // Haptic on page snap
+            .onChange(of: currentIndex) { _, _ in
+                HapticFeedbackService.shared.trigger(.selection) // Haptic on page snap (respects global setting)
+            }
             .onChange(of: items.count) { _, newCount in
                 if currentIndex >= newCount {
                     animateIfAllowed(.easeInOut(duration: 0.2)) {

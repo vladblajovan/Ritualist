@@ -3,7 +3,6 @@ import FactoryKit
 import RitualistCore
 import CloudKit
 
-// swiftlint:disable:next type_body_length
 public struct RootTabView: View {
     @Injected(\.rootTabViewModel) var viewModel
     @Injected(\.settingsViewModel) var settingsViewModel
@@ -12,14 +11,14 @@ public struct RootTabView: View {
     @Injected(\.checkHabitCreationLimit) var checkHabitCreationLimit
     @Injected(\.debugLogger) var logger
     @Injected(\.userDefaultsService) var userDefaults
-    @State private var showOnboarding = false
-    @State private var isCheckingOnboarding = true
-    @State private var showingPersonalityAnalysis = false
-    @State private var pendingPersonalitySheetReshow = false // For dismiss-then-reshow pattern
-    @State private var showingPostOnboardingAssistant = false
-    @State private var existingHabits: [Habit] = []
-    @State private var migrationService = MigrationStatusService.shared
-    @State private var pendingPersonalitySheetAfterTabSwitch = false
+    @State var showOnboarding = false
+    @State var isCheckingOnboarding = true
+    @State var showingPersonalityAnalysis = false
+    @State var pendingPersonalitySheetReshow = false // For dismiss-then-reshow pattern
+    @State var showingPostOnboardingAssistant = false
+    @State var existingHabits: [Habit] = []
+    @State var migrationService = MigrationStatusService.shared
+    @State var pendingPersonalitySheetAfterTabSwitch = false
 
     // Quick Actions state
     @Injected(\.quickActionCoordinator) private var quickActionCoordinator
@@ -414,213 +413,6 @@ public struct RootTabView: View {
             .padding(.top, 4)
         }
         .animation(SpringAnimation.interactive, value: viewModel.toastItems.map(\.id))
-    }
-    
-    private func checkOnboardingStatus() async {
-        let startTime = Date()
-
-        await viewModel.checkOnboardingStatus()
-
-        // Ensure launch screen shows for minimum time to avoid jarring flash
-        // Skip delay during UI tests for faster test execution
-        if !LaunchArgument.uiTesting.isActive {
-            let elapsed = Date().timeIntervalSince(startTime)
-            let minimumDisplayTime: TimeInterval = 0.25
-            if elapsed < minimumDisplayTime {
-                try? await Task.sleep(for: .seconds(minimumDisplayTime - elapsed))
-            }
-        }
-
-        showOnboarding = viewModel.showOnboarding
-        isCheckingOnboarding = viewModel.isCheckingOnboarding
-    }
-
-    /// Handle post-onboarding flow - open assistant if user can add more habits
-    /// Called from fullScreenCover's onDismiss, so onboarding is already dismissed
-    /// Note: This is only called for new user onboarding, not returning user welcome
-    private func handlePostOnboarding() async {
-        await loadCurrentHabits()
-
-        // NOTE: Don't call handleFirstiCloudSync() here - the assistant sheet will open next
-        // and the toast would appear behind it. Instead, we trigger the toast when the
-        // assistant sheet dismisses (see onDisappear handler).
-
-        let currentHabitCount = existingHabits.count
-        let canAddMoreHabits = await checkHabitCreationLimit.execute(currentCount: currentHabitCount)
-
-        // Only open assistant if user hasn't reached the limit
-        // For premium users or users with < 5 habits
-        if canAddMoreHabits {
-            showingPostOnboardingAssistant = true
-        }
-        // If at limit (5+ habits for free users), don't open assistant
-        // User will land on Overview tab naturally
-    }
-
-    /// Load current habits to check count
-    private func loadCurrentHabits() async {
-        do {
-            let habitsData = try await loadHabitsData.execute()
-            existingHabits = habitsData.habits
-        } catch {
-            Container.shared.debugLogger().log("Failed to load habits for post-onboarding check: \(error)", level: .error, category: .ui)
-            existingHabits = []
-        }
-    }
-
-    /// Handle returning user welcome - show when iCloud data has loaded
-    /// Uses retry logic to wait for both habits AND profile to sync from CloudKit
-    private func handleReturningUserWelcome(retryCount: Int = 0) {
-        guard viewModel.pendingReturningUserWelcome else { return }
-
-        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-        Task { @MainActor in
-            await loadCurrentHabits()
-            let profile = await loadProfileSafely()
-
-            // Check if we have complete data (profile with gender/ageGroup set)
-            let hasCompleteData = profile != nil && profile?.gender != nil && profile?.ageGroup != nil
-
-            if hasCompleteData {
-                await MainActor.run {
-                    viewModel.showReturningUserWelcomeIfNeeded(habits: existingHabits, profile: profile)
-                }
-            } else {
-                await handleIncompleteReturningUserData(profile: profile, retryCount: retryCount)
-            }
-        }
-    }
-
-    private func loadProfileSafely() async -> UserProfile? {
-        do {
-            return try await loadProfile.execute()
-        } catch {
-            logger.log(
-                "Failed to load profile for returning user check",
-                level: .warning,
-                category: .system,
-                metadata: ["error": error.localizedDescription]
-            )
-            return nil
-        }
-    }
-
-    private func handleIncompleteReturningUserData(profile: UserProfile?, retryCount: Int) async {
-        // Retry up to 5 minutes - CloudKit profile/avatar may take longer on slow networks
-        if retryCount < SyncConstants.maxRetries {
-            logger.log(
-                "☁️ Returning user data incomplete - will retry",
-                level: .debug,
-                category: .system,
-                metadata: [
-                    "retry_count": retryCount + 1,
-                    "max_retries": SyncConstants.maxRetries,
-                    "has_profile": profile != nil,
-                    "has_gender": profile?.gender != nil,
-                    "has_ageGroup": profile?.ageGroup != nil
-                ]
-            )
-            try? await Task.sleep(for: .seconds(SyncConstants.retryIntervalSeconds))
-            await MainActor.run {
-                handleReturningUserWelcome(retryCount: retryCount + 1)
-            }
-        } else {
-            logger.log(
-                "☁️ Returning user data still incomplete after retries - showing info toast",
-                level: .warning,
-                category: .system,
-                metadata: ["has_profile": profile != nil, "has_gender": profile?.gender != nil, "has_ageGroup": profile?.ageGroup != nil]
-            )
-            await MainActor.run {
-                viewModel.dismissSyncingDataToast()
-                viewModel.pendingReturningUserWelcome = false
-                viewModel.showStillSyncingToast()
-            }
-        }
-    }
-
-    /// Handle first iCloud sync - show toast only once per device lifetime
-    /// Uses retry logic because data may not be available immediately when notification fires
-    private func handleFirstiCloudSync(retryCount: Int = 0) {
-        guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else { return }
-        guard !showOnboarding && !isCheckingOnboarding && !showingPostOnboardingAssistant else {
-            logModalActiveForSync()
-            return
-        }
-
-        // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
-        Task { @MainActor in
-            await performFirstiCloudSyncCheck(retryCount: retryCount)
-        }
-    }
-
-    private func logModalActiveForSync() {
-        logger.log(
-            "☁️ iCloud sync detected but modal active - deferring toast",
-            level: .debug,
-            category: .system,
-            metadata: [
-                "showOnboarding": showOnboarding,
-                "isCheckingOnboarding": isCheckingOnboarding,
-                "showingAssistant": showingPostOnboardingAssistant
-            ]
-        )
-    }
-
-    private func performFirstiCloudSyncCheck(retryCount: Int) async {
-        guard !userDefaults.bool(forKey: UserDefaultsKeys.hasShownFirstSyncToast) else { return }
-
-        guard await PersistenceContainer.isICloudAvailable() else {
-            logger.log("☁️ iCloud not available - skipping sync toast", level: .debug, category: .system)
-            return
-        }
-
-        await loadCurrentHabits()
-
-        guard !existingHabits.isEmpty else {
-            await retryFirstiCloudSyncIfNeeded(retryCount: retryCount)
-            return
-        }
-
-        userDefaults.set(true, forKey: UserDefaultsKeys.hasShownFirstSyncToast)
-        logger.log(
-            "☁️ First iCloud sync with data - showing welcome toast",
-            level: .info,
-            category: .system,
-            metadata: ["habits_count": existingHabits.count]
-        )
-        await MainActor.run {
-            viewModel.showSyncedToast()
-        }
-    }
-
-    private func retryFirstiCloudSyncIfNeeded(retryCount: Int) async {
-        if retryCount < 3 {
-            logger.log(
-                "☁️ iCloud sync detected but no habits found yet - will retry",
-                level: .debug,
-                category: .system,
-                metadata: ["retry_count": retryCount + 1]
-            )
-            try? await Task.sleep(for: .seconds(Double(retryCount + 1)))
-            handleFirstiCloudSync(retryCount: retryCount + 1)
-        } else {
-            logger.log("☁️ iCloud sync detected but no habits found after retries - skipping toast", level: .debug, category: .system)
-        }
-    }
-
-    // MARK: - Centralized Toast View
-
-    @ViewBuilder
-    private func toastView(for toast: RootTabViewModel.ToastDisplayItem) -> some View {
-        ToastView(
-            message: toast.message,
-            icon: toast.icon,
-            style: toast.style,
-            isPersistent: toast.isPersistent
-        ) {
-            viewModel.dismissToast(toast.id)
-        }
     }
 }
 

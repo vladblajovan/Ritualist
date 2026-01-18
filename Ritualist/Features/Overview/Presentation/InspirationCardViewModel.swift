@@ -220,6 +220,9 @@ public final class InspirationCardViewModel {
 
         // Note: Task { } does NOT inherit MainActor isolation, must explicitly specify
         inspirationCheckTask = Task { @MainActor in
+            // Cleanup task reference when done (prevents memory leak from holding stale task)
+            defer { inspirationCheckTask = nil }
+
             // Early exit if task was cancelled while waiting to start
             guard !Task.isCancelled else { return }
 

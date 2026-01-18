@@ -101,23 +101,50 @@ struct AppBrandHeader: View {
 
     @ViewBuilder
     private var profileAvatarViewWithoutCrown: some View {
-        let contentType = AppBrandHeaderViewLogic.avatarContentType(hasAvatarImage: settingsVM.profile.avatarImageData != nil, name: settingsVM.profile.name)
+        let contentType = AppBrandHeaderViewLogic.avatarContentType(
+            hasAvatarImage: settingsVM.profile.avatarImageData != nil,
+            name: settingsVM.profile.name
+        )
         let showCircularProgress = progressDisplayStyle == .circular && showProgressBar
+
         ZStack {
             if contentType != .image {
-                Circle().fill(LinearGradient(colors: progressGradientColors(for: completionPercentage ?? 0.0), startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: avatarOuterSize, height: avatarOuterSize)
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: progressGradientColors(for: completionPercentage ?? 0.0),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: avatarOuterSize, height: avatarOuterSize)
             }
+
             switch contentType {
             case .image:
-                if let imageData = settingsVM.profile.avatarImageData, let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage).resizable().aspectRatio(contentMode: .fill).frame(width: avatarOuterSize, height: avatarOuterSize).clipShape(Circle())
+                if let imageData = settingsVM.profile.avatarImageData,
+                   let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: avatarOuterSize, height: avatarOuterSize)
+                        .clipShape(Circle())
                 }
+
             case .initials:
-                Text(AppBrandHeaderViewLogic.avatarInitials(from: settingsVM.profile.name)).font(.system(size: avatarOuterSize * 0.38, weight: .semibold, design: .rounded)).foregroundColor(.white)
-            case .empty: EmptyView()
+                Text(AppBrandHeaderViewLogic.avatarInitials(from: settingsVM.profile.name))
+                    .font(.system(size: avatarOuterSize * 0.38, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+
+            case .empty:
+                EmptyView()
             }
         }
-        .overlay { if showCircularProgress { circularProgressRing } }
+        .overlay {
+            if showCircularProgress {
+                circularProgressRing
+            }
+        }
     }
 
     // MARK: - Premium Crown Badge
@@ -126,9 +153,15 @@ struct AppBrandHeader: View {
 
     @ViewBuilder
     private var premiumCrownBadge: some View {
-        Image(systemName: "crown.fill").font(.system(size: 8, weight: .bold)).foregroundStyle(GradientTokens.premiumCrown)
+        Image(systemName: "crown.fill")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(GradientTokens.premiumCrown)
             .frame(width: crownBadgeSize, height: crownBadgeSize)
-            .background(Circle().fill(colorScheme == .dark ? Color.white : Color.black).shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1))
+            .background(
+                Circle()
+                    .fill(colorScheme == .dark ? Color.white : Color.black)
+                    .shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1)
+            )
             .offset(x: 5, y: 5)
     }
 
@@ -140,28 +173,63 @@ struct AppBrandHeader: View {
     @ViewBuilder
     private var circularProgressRing: some View {
         let progress = animatedCompletionPercentage
+
         ZStack {
-            Circle().stroke(Color.secondary.opacity(0.2), style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round)).frame(width: circularProgressSize, height: circularProgressSize)
-            Circle().trim(from: 0, to: progress)
-                .stroke(AngularGradient(colors: progressGradientColors(for: progress), center: .center, startAngle: .degrees(0), endAngle: .degrees(360 * progress)), style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round))
-                .frame(width: circularProgressSize, height: circularProgressSize).rotationEffect(.degrees(-90)).animation(.easeInOut(duration: 0.6), value: progress)
-                .shadow(color: showProgressGlow ? Color.green.opacity(CardDesign.glowOpacity) : .clear, radius: showProgressGlow ? CardDesign.glowRadius : 0, x: 0, y: 0)
+            Circle()
+                .stroke(
+                    Color.secondary.opacity(0.2),
+                    style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round)
+                )
+                .frame(width: circularProgressSize, height: circularProgressSize)
+
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    AngularGradient(
+                        colors: progressGradientColors(for: progress),
+                        center: .center,
+                        startAngle: .degrees(0),
+                        endAngle: .degrees(360 * progress)
+                    ),
+                    style: StrokeStyle(lineWidth: circularProgressLineWidth, lineCap: .round)
+                )
+                .frame(width: circularProgressSize, height: circularProgressSize)
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.6), value: progress)
+                .shadow(
+                    color: showProgressGlow ? Color.green.opacity(CardDesign.glowOpacity) : .clear,
+                    radius: showProgressGlow ? CardDesign.glowRadius : 0,
+                    x: 0,
+                    y: 0
+                )
         }
     }
 
     // MARK: - Action Button
 
     private let actionButtonSize: CGFloat = 36
-    private var actionButtonBackground: Color { colorScheme == .light ? Color(.systemBackground) : Color(.secondarySystemBackground) }
+
+    private var actionButtonBackground: Color {
+        colorScheme == .light ? Color(.systemBackground) : Color(.secondarySystemBackground)
+    }
 
     @ViewBuilder
     private func actionButton(_ action: HeaderAction) -> some View {
-        Button { action.action() } label: {
+        Button {
+            action.action()
+        } label: {
             ZStack {
-                Circle().fill(actionButtonBackground).frame(width: actionButtonSize, height: actionButtonSize)
-                Image(systemName: action.icon).font(.system(size: 14, weight: .semibold)).foregroundColor(.primary)
+                Circle()
+                    .fill(actionButtonBackground)
+                    .frame(width: actionButtonSize, height: actionButtonSize)
+
+                Image(systemName: action.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
             }
-        }.buttonStyle(.plain).accessibilityLabel(action.accessibilityLabel)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(action.accessibilityLabel)
     }
 
     // MARK: - Animation State
@@ -176,61 +244,156 @@ struct AppBrandHeader: View {
 
     @ViewBuilder
     private var profileAvatarButton: some View {
-        let button = Button { showingSettings = true } label: { profileAvatarViewWithoutCrown }
-            .buttonStyle(.plain).transaction { $0.animation = nil }.accessibilityLabel("Profile").accessibilityHint("Double tap to open settings").id(profileRefreshTrigger)
-        if showAvatarTip { button.popoverTip(circleProgressTip, arrowEdge: .top) } else { button }
+        let button = Button {
+            showingSettings = true
+        } label: {
+            profileAvatarViewWithoutCrown
+        }
+        .buttonStyle(.plain)
+        .transaction { $0.animation = nil }
+        .accessibilityLabel("Profile")
+        .accessibilityHint("Double tap to open settings")
+        .id(profileRefreshTrigger)
+
+        if showAvatarTip {
+            button.popoverTip(circleProgressTip, arrowEdge: .top)
+        } else {
+            button
+        }
     }
 
     // MARK: - Constants
 
-    private static let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Ritualist"
-    private enum AnimationTiming { static let progressAnimationDelay: UInt64 = 600_000_000; static let glowFadeDelay: UInt64 = 2_000_000_000 }
+    private static let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+        ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+        ?? "Ritualist"
+
+    private enum AnimationTiming {
+        static let progressAnimationDelay: UInt64 = 600_000_000
+        static let glowFadeDelay: UInt64 = 2_000_000_000
+    }
 
     // MARK: - Body
 
-    private var circularProgressOverhang: CGFloat { (circularProgressGap + circularProgressLineWidth) / 2 }
+    private var circularProgressOverhang: CGFloat {
+        (circularProgressGap + circularProgressLineWidth) / 2
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.medium) {
             gradientTitle
-            if showProgressBar && completionPercentage != nil && progressDisplayStyle == .linear { progressBar }
+
+            if showProgressBar && completionPercentage != nil && progressDisplayStyle == .linear {
+                progressBar
+            }
         }
-        .padding(.horizontal, Spacing.xxlarge).padding(.bottom, circularProgressOverhang).frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Spacing.xxlarge)
+        .padding(.bottom, circularProgressOverhang)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) {
-            LinearGradient(colors: [Color(.systemGroupedBackground), Color(.systemGroupedBackground).opacity(0)], startPoint: .top, endPoint: .bottom)
-                .frame(height: 16).offset(y: 16).allowsHitTesting(false)
+            LinearGradient(
+                colors: [Color(.systemGroupedBackground), Color(.systemGroupedBackground).opacity(0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 16)
+            .offset(y: 16)
+            .allowsHitTesting(false)
         }
-        .onAppear { if let percentage = completionPercentage { animatedCompletionPercentage = percentage; hasInitializedProgress = true } }
-        .task { if settingsVM.profile.name.isEmpty { await settingsVM.load() } }
-        .onChange(of: completionPercentage) { oldValue, newValue in handleCompletionPercentageChange(oldValue: oldValue, newValue: newValue) }
-        .onDisappear { progressGlowTask?.cancel() }
-        .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in Task { @MainActor in await settingsVM.refreshSubscriptionStatus() } }
-        .onReceive(NotificationCenter.default.publisher(for: .userProfileDidChange)) { _ in Task { @MainActor in await settingsVM.reload(); profileRefreshTrigger = UUID() } }
+        .onAppear {
+            if let percentage = completionPercentage {
+                animatedCompletionPercentage = percentage
+                hasInitializedProgress = true
+            }
+        }
+        .task {
+            if settingsVM.profile.name.isEmpty {
+                await settingsVM.load()
+            }
+        }
+        .onChange(of: completionPercentage) { oldValue, newValue in
+            handleCompletionPercentageChange(oldValue: oldValue, newValue: newValue)
+        }
+        .onDisappear {
+            progressGlowTask?.cancel()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .premiumStatusDidChange)) { _ in
+            Task { @MainActor in
+                await settingsVM.refreshSubscriptionStatus()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .userProfileDidChange)) { _ in
+            Task { @MainActor in
+                await settingsVM.reload()
+                profileRefreshTrigger = UUID()
+            }
+        }
     }
 
     // MARK: - Gradient Title
 
-    private var glowShadowColor: Color { showProgressGlow ? Color.green.opacity(CardDesign.glowOpacity) : .clear }
-    private var glowRadius: CGFloat { showProgressGlow ? CardDesign.glowRadius : 0 }
+    private var glowShadowColor: Color {
+        showProgressGlow ? Color.green.opacity(CardDesign.glowOpacity) : .clear
+    }
+
+    private var glowRadius: CGFloat {
+        showProgressGlow ? CardDesign.glowRadius : 0
+    }
 
     @ViewBuilder
     private var gradientTitle: some View {
         HStack(spacing: Spacing.screenMargin) {
-            Image("LaunchIcon").resizable().aspectRatio(contentMode: .fit).frame(width: CardDesign.brandHeaderFontSize, height: CardDesign.brandHeaderFontSize).shadow(color: glowShadowColor, radius: glowRadius, x: 0, y: 0)
-            Text(Self.appName).font(CardDesign.brandHeaderFont)
-                .overlay(LinearGradient(colors: progressGradientColors(for: completionPercentage ?? 0.0), startPoint: .leading, endPoint: .trailing).mask(Text(Self.appName).font(CardDesign.brandHeaderFont)))
+            Image("LaunchIcon")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: CardDesign.brandHeaderFontSize, height: CardDesign.brandHeaderFontSize)
                 .shadow(color: glowShadowColor, radius: glowRadius, x: 0, y: 0)
+
+            Text(Self.appName)
+                .font(CardDesign.brandHeaderFont)
+                .overlay(
+                    LinearGradient(
+                        colors: progressGradientColors(for: completionPercentage ?? 0.0),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .mask(Text(Self.appName).font(CardDesign.brandHeaderFont))
+                )
+                .shadow(color: glowShadowColor, radius: glowRadius, x: 0, y: 0)
+
             Spacer()
-            ForEach(actions.prefix(3)) { action in actionButton(action) }
+
+            ForEach(actions.prefix(3)) { action in
+                actionButton(action)
+            }
+
             if showProfileAvatar {
                 ZStack(alignment: .bottomTrailing) {
-                    profileAvatarButton.fullScreenCover(isPresented: $showingSettings) {
-                        NavigationStack { SettingsRoot().toolbar { ToolbarItem(placement: .confirmationAction) { Button(Strings.Common.close) { showingSettings = false } } } }
+                    profileAvatarButton
+                        .fullScreenCover(isPresented: $showingSettings) {
+                            NavigationStack {
+                                SettingsRoot()
+                                    .toolbar {
+                                        ToolbarItem(placement: .confirmationAction) {
+                                            Button(Strings.Common.close) {
+                                                showingSettings = false
+                                            }
+                                        }
+                                    }
+                            }
+                        }
+
+                    if settingsVM.isPremiumUser {
+                        premiumCrownBadge
+                            .allowsHitTesting(false)
                     }
-                    if settingsVM.isPremiumUser { premiumCrownBadge.allowsHitTesting(false) }
-                }.padding(.trailing, Spacing.xsmall)
+                }
+                .padding(.trailing, Spacing.xsmall)
             }
-        }.frame(maxWidth: .infinity, alignment: .leading).accessibilityElement(children: .ignore).accessibilityLabel("\(Self.appName) progress header")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Self.appName) progress header")
     }
 
     // MARK: - Progress Bar
@@ -239,29 +402,63 @@ struct AppBrandHeader: View {
     private var progressBar: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: CornerRadius.small).fill(CardDesign.secondaryBackground).frame(height: CardDesign.progressBarHeight)
-                RoundedRectangle(cornerRadius: CornerRadius.small).fill(.linearGradient(colors: progressGradientColors(for: animatedCompletionPercentage), startPoint: .leading, endPoint: .trailing))
-                    .frame(width: geometry.size.width * animatedCompletionPercentage, height: CardDesign.progressBarHeight).shadow(color: glowShadowColor, radius: glowRadius, x: 0, y: 0)
+                RoundedRectangle(cornerRadius: CornerRadius.small)
+                    .fill(CardDesign.secondaryBackground)
+                    .frame(height: CardDesign.progressBarHeight)
+
+                RoundedRectangle(cornerRadius: CornerRadius.small)
+                    .fill(
+                        .linearGradient(
+                            colors: progressGradientColors(for: animatedCompletionPercentage),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(
+                        width: geometry.size.width * animatedCompletionPercentage,
+                        height: CardDesign.progressBarHeight
+                    )
+                    .shadow(color: glowShadowColor, radius: glowRadius, x: 0, y: 0)
             }
-        }.frame(height: CardDesign.progressBarHeight).accessibilityElement(children: .ignore).accessibilityLabel("Progress: \(Int((completionPercentage ?? 0) * 100)) percent")
+        }
+        .frame(height: CardDesign.progressBarHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Progress: \(Int((completionPercentage ?? 0) * 100)) percent")
     }
 
     // MARK: - Helpers
 
-    private func progressGradientColors(for completion: Double) -> [Color] { CircularProgressView.adaptiveProgressColors(for: completion) }
+    private func progressGradientColors(for completion: Double) -> [Color] {
+        CircularProgressView.adaptiveProgressColors(for: completion)
+    }
 
     private func handleCompletionPercentageChange(oldValue: Double?, newValue: Double?) {
         let effectiveNewValue = newValue ?? 0.0
         let shouldAnimate = hasInitializedProgress ? true : animateProgressOnLoad
-        if shouldAnimate { withAnimation(.easeInOut(duration: 0.6)) { animatedCompletionPercentage = effectiveNewValue } } else { animatedCompletionPercentage = effectiveNewValue }
+
+        if shouldAnimate {
+            withAnimation(.easeInOut(duration: 0.6)) {
+                animatedCompletionPercentage = effectiveNewValue
+            }
+        } else {
+            animatedCompletionPercentage = effectiveNewValue
+        }
+
         hasInitializedProgress = true
-        if shouldAnimate && effectiveNewValue >= 1.0, oldValue ?? 0.0 < 1.0 {
+
+        // Trigger glow effect when reaching 100%
+        let wasBelow100 = (oldValue ?? 0.0) < 1.0
+        if shouldAnimate && effectiveNewValue >= 1.0 && wasBelow100 {
             progressGlowTask?.cancel()
             progressGlowTask = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: AnimationTiming.progressAnimationDelay)
-                withAnimation(.easeInOut(duration: 0.3)) { showProgressGlow = true }
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showProgressGlow = true
+                }
                 try? await Task.sleep(nanoseconds: AnimationTiming.glowFadeDelay)
-                withAnimation(.easeOut(duration: 0.5)) { showProgressGlow = false }
+                withAnimation(.easeOut(duration: 0.5)) {
+                    showProgressGlow = false
+                }
             }
         }
     }

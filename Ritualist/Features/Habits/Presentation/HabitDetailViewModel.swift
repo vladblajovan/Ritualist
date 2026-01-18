@@ -112,26 +112,58 @@ public final class HabitDetailViewModel {
     
     public let originalHabit: Habit?
     
-    public init(habit: Habit? = nil, getEarliestLogDate: GetEarliestLogDateUseCase? = nil, validateHabitUniqueness: ValidateHabitUniquenessUseCase? = nil, getActiveCategories: GetActiveCategoriesUseCase? = nil, permissionCoordinator: PermissionCoordinatorProtocol? = nil) {
+    public init(
+        habit: Habit? = nil,
+        getEarliestLogDate: GetEarliestLogDateUseCase? = nil,
+        validateHabitUniqueness: ValidateHabitUniquenessUseCase? = nil,
+        getActiveCategories: GetActiveCategoriesUseCase? = nil,
+        permissionCoordinator: PermissionCoordinatorProtocol? = nil
+    ) {
         self.getEarliestLogDate = getEarliestLogDate ?? Container.shared.getEarliestLogDate()
         self.validateHabitUniqueness = validateHabitUniqueness ?? Container.shared.validateHabitUniqueness()
         self.getActiveCategories = getActiveCategories ?? Container.shared.getActiveCategories()
         self.permissionCoordinator = permissionCoordinator ?? Container.shared.permissionCoordinator()
-        self.originalHabit = habit; self.isEditMode = habit != nil
-        if let habit = habit { loadHabitData(habit) }
-        Task { @MainActor in await loadInitialData() }
+        self.originalHabit = habit
+        self.isEditMode = habit != nil
+        if let habit = habit {
+            loadHabitData(habit)
+        }
+        Task { @MainActor in
+            await loadInitialData()
+        }
     }
 
     public func loadInitialData() async {
-        async let categoriesLoad: () = loadCategories(); async let locationLoad: () = checkLocationAuthStatus(); async let earliestLogLoad: () = loadEarliestLogDate(); async let premiumLoad: () = loadPremiumStatus()
+        async let categoriesLoad: () = loadCategories()
+        async let locationLoad: () = checkLocationAuthStatus()
+        async let earliestLogLoad: () = loadEarliestLogDate()
+        async let premiumLoad: () = loadPremiumStatus()
         _ = await (categoriesLoad, locationLoad, earliestLogLoad, premiumLoad)
     }
-    private func loadPremiumStatus() async { cachedPremiumStatus = await checkPremiumStatus.execute() }
-    public func showPaywall() async { await paywallViewModel.load(); paywallViewModel.trackPaywallShown(source: "habit_detail", trigger: "premium_feature"); paywallItem = PaywallItem(viewModel: paywallViewModel) }
+
+    private func loadPremiumStatus() async {
+        cachedPremiumStatus = await checkPremiumStatus.execute()
+    }
+
+    public func showPaywall() async {
+        await paywallViewModel.load()
+        paywallViewModel.trackPaywallShown(source: "habit_detail", trigger: "premium_feature")
+        paywallItem = PaywallItem(viewModel: paywallViewModel)
+    }
     
     public var isFormValid: Bool {
-        isNameValid && (selectedKind == .binary || (dailyTarget > 0 && isUnitLabelValid)) && isScheduleValid && (isEditMode || selectedCategory != nil) &&
-        !isDuplicateHabit && !duplicateValidationFailed && !isLoadingEarliestLogDate && !earliestLogDateLoadFailed && isStartDateValid
+        let isTargetValid = selectedKind == .binary || (dailyTarget > 0 && isUnitLabelValid)
+        let isCategorySelected = isEditMode || selectedCategory != nil
+        let isNotDuplicate = !isDuplicateHabit && !duplicateValidationFailed
+        let isEarliestLogDateReady = !isLoadingEarliestLogDate && !earliestLogDateLoadFailed
+
+        return isNameValid
+            && isTargetValid
+            && isScheduleValid
+            && isCategorySelected
+            && isNotDuplicate
+            && isEarliestLogDateReady
+            && isStartDateValid
     }
 
     public var isNameValid: Bool { !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -147,139 +179,349 @@ public final class HabitDetailViewModel {
     public var didMakeChanges = false
 
     public func save() async -> Bool {
-        guard isFormValid else { return false }
-        isSaving = true; error = nil
+        guard isFormValid else {
+            return false
+        }
+
+        isSaving = true
+        error = nil
+
         do {
             let habit = createHabitFromForm()
-            if isEditMode { try await updateHabit.execute(habit) } else { _ = try await createHabit.execute(habit); await TapHabitTip.firstHabitAdded.donate() }
+
+            if isEditMode {
+                try await updateHabit.execute(habit)
+            } else {
+                _ = try await createHabit.execute(habit)
+                await TapHabitTip.firstHabitAdded.donate()
+            }
+
             try await scheduleHabitReminders.execute(habit: habit)
             try await configureHabitLocation.execute(habitId: habit.id, configuration: locationConfiguration)
-            didMakeChanges = true; isSaving = false; return true
-        } catch { self.error = error; isSaving = false; return false }
+
+            didMakeChanges = true
+            isSaving = false
+            return true
+        } catch {
+            self.error = error
+            isSaving = false
+            return false
+        }
     }
 
     public func delete() async -> Bool {
-        guard let habitId = originalHabit?.id else { return false }
-        isDeleting = true; error = nil
-        do { try await deleteHabit.execute(id: habitId); isDeleting = false; didDelete = true; return true } catch { self.error = error; isDeleting = false; return false }
+        guard let habitId = originalHabit?.id else {
+            return false
+        }
+
+        isDeleting = true
+        error = nil
+
+        do {
+            try await deleteHabit.execute(id: habitId)
+            isDeleting = false
+            didDelete = true
+            return true
+        } catch {
+            self.error = error
+            isDeleting = false
+            return false
+        }
     }
 
     public func toggleActiveStatus() async -> Bool {
-        guard let habitId = originalHabit?.id else { return false }
-        isSaving = true; error = nil
-        do { isActive = try await toggleHabitActiveStatus.execute(id: habitId).isActive; isSaving = false; return true } catch { self.error = error; isSaving = false; return false }
+        guard let habitId = originalHabit?.id else {
+            return false
+        }
+
+        isSaving = true
+        error = nil
+
+        do {
+            let updatedHabit = try await toggleHabitActiveStatus.execute(id: habitId)
+            isActive = updatedHabit.isActive
+            isSaving = false
+            return true
+        } catch {
+            self.error = error
+            isSaving = false
+            return false
+        }
     }
 
-    public func retry() async { error = nil }
+    public func retry() async {
+        error = nil
+    }
     
     // MARK: - Reminder Management
 
     public func addReminder(hour: Int, minute: Int) {
-        guard !reminders.contains(where: { $0.hour == hour && $0.minute == minute }) else { return }
+        let alreadyExists = reminders.contains { $0.hour == hour && $0.minute == minute }
+        guard !alreadyExists else {
+            return
+        }
+
         reminders.append(ReminderTime(hour: hour, minute: minute))
-        reminders.sort { $0.hour != $1.hour ? $0.hour < $1.hour : $0.minute < $1.minute }
+        reminders.sort { lhs, rhs in
+            if lhs.hour != rhs.hour {
+                return lhs.hour < rhs.hour
+            }
+            return lhs.minute < rhs.minute
+        }
     }
-    public func removeReminder(at index: Int) { guard index >= 0 && index < reminders.count else { return }; reminders.remove(at: index) }
-    public func removeReminder(_ reminder: ReminderTime) { reminders.removeAll { $0.hour == reminder.hour && $0.minute == reminder.minute } }
+
+    public func removeReminder(at index: Int) {
+        guard index >= 0 && index < reminders.count else {
+            return
+        }
+        reminders.remove(at: index)
+    }
+
+    public func removeReminder(_ reminder: ReminderTime) {
+        reminders.removeAll { $0.hour == reminder.hour && $0.minute == reminder.minute }
+    }
     
     // MARK: - Category Management
 
     public func loadCategories() async {
-        isLoadingCategories = true; categoriesError = nil
+        isLoadingCategories = true
+        categoriesError = nil
+
         displayTimezone = (try? await timezoneService.getDisplayTimezone()) ?? .current
+
         do {
             categories = try await getActiveCategories.execute()
-            if isEditMode, let originalHabit = originalHabit, let categoryId = originalHabit.categoryId {
+
+            if isEditMode,
+               let originalHabit = originalHabit,
+               let categoryId = originalHabit.categoryId {
                 selectedCategory = categories.first { $0.id == categoryId }
             }
-        } catch { categoriesError = error; categories = [] }
+        } catch {
+            categoriesError = error
+            categories = []
+        }
+
         isLoadingCategories = false
     }
 
     public func selectCategory(_ category: HabitCategory) {
         selectedCategory = category
-        Task { @MainActor in await validateForDuplicates() }
+        Task { @MainActor in
+            await validateForDuplicates()
+        }
     }
 
     public func createCustomCategory(name: String, emoji: String) async -> Bool {
         do {
-            guard try await validateCategoryName.execute(name: name) else { return false }
-            let newCategory = HabitCategory(id: UUID().uuidString, name: name.lowercased(), displayName: name, emoji: emoji, order: categories.count, isActive: true)
+            let isValid = try await validateCategoryName.execute(name: name)
+            guard isValid else {
+                return false
+            }
+
+            let newCategory = HabitCategory(
+                id: UUID().uuidString,
+                name: name.lowercased(),
+                displayName: name,
+                emoji: emoji,
+                order: categories.count,
+                isActive: true
+            )
+
             try await createCustomCategory.execute(newCategory)
-            await loadCategories(); selectedCategory = newCategory; return true
-        } catch { return false }
+            await loadCategories()
+            selectedCategory = newCategory
+            return true
+        } catch {
+            return false
+        }
     }
 
     public func validateForDuplicates() async {
-        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { isDuplicateHabit = false; return }
-        isValidatingDuplicate = true; duplicateValidationFailed = false
-        do { isDuplicateHabit = !(try await validateHabitUniqueness.execute(name: name, categoryId: selectedCategory?.id, excludeId: originalHabit?.id)) } catch { logger.log("Failed to validate habit uniqueness for '\(name)': \(error.localizedDescription)", level: .error, category: .dataIntegrity); duplicateValidationFailed = true; isDuplicateHabit = false }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            isDuplicateHabit = false
+            return
+        }
+
+        isValidatingDuplicate = true
+        duplicateValidationFailed = false
+
+        do {
+            let isUnique = try await validateHabitUniqueness.execute(
+                name: name,
+                categoryId: selectedCategory?.id,
+                excludeId: originalHabit?.id
+            )
+            isDuplicateHabit = !isUnique
+        } catch {
+            logger.log(
+                "Failed to validate habit uniqueness for '\(name)': \(error.localizedDescription)",
+                level: .error,
+                category: .dataIntegrity
+            )
+            duplicateValidationFailed = true
+            isDuplicateHabit = false
+        }
+
         isValidatingDuplicate = false
     }
 
     public func loadEarliestLogDate() async {
-        guard isEditMode, let habitId = originalHabit?.id else { return }
-        isLoadingEarliestLogDate = true; earliestLogDateLoadFailed = false
-        do { earliestLogDate = try await getEarliestLogDate.execute(for: habitId) } catch { logger.log("Failed to load earliest log date for habit \(habitId): \(error.localizedDescription)", level: .error, category: .dataIntegrity); earliestLogDateLoadFailed = true; earliestLogDate = nil }
+        guard isEditMode, let habitId = originalHabit?.id else {
+            return
+        }
+
+        isLoadingEarliestLogDate = true
+        earliestLogDateLoadFailed = false
+
+        do {
+            earliestLogDate = try await getEarliestLogDate.execute(for: habitId)
+        } catch {
+            logger.log(
+                "Failed to load earliest log date for habit \(habitId): \(error.localizedDescription)",
+                level: .error,
+                category: .dataIntegrity
+            )
+            earliestLogDateLoadFailed = true
+            earliestLogDate = nil
+        }
+
         isLoadingEarliestLogDate = false
     }
 
     private func loadHabitData(_ habit: Habit) {
-        name = habit.name; selectedKind = habit.kind; unitLabel = habit.unitLabel ?? ""; dailyTarget = habit.dailyTarget ?? 1.0
-        selectedEmoji = habit.emoji ?? "⭐"; selectedColorHex = habit.colorHex; reminders = habit.reminders
-        isActive = habit.isActive; startDate = habit.startDate; locationConfiguration = habit.locationConfiguration
+        name = habit.name
+        selectedKind = habit.kind
+        unitLabel = habit.unitLabel ?? ""
+        dailyTarget = habit.dailyTarget ?? 1.0
+        selectedEmoji = habit.emoji ?? "⭐"
+        selectedColorHex = habit.colorHex
+        reminders = habit.reminders
+        isActive = habit.isActive
+        startDate = habit.startDate
+        locationConfiguration = habit.locationConfiguration
+
         switch habit.schedule {
-        case .daily: selectedSchedule = .daily
-        case .daysOfWeek(let days): selectedSchedule = .daysOfWeek; selectedDaysOfWeek = days
+        case .daily:
+            selectedSchedule = .daily
+        case .daysOfWeek(let days):
+            selectedSchedule = .daysOfWeek
+            selectedDaysOfWeek = days
         }
     }
 
     private func createHabitFromForm() -> Habit {
-        let schedule: HabitSchedule = selectedSchedule == .daily ? .daily : .daysOfWeek(selectedDaysOfWeek)
-        let finalCategoryId = (isEditMode && originalHabit?.suggestionId != nil) ? originalHabit?.categoryId : selectedCategory?.id
-        return Habit(id: originalHabit?.id ?? UUID(), name: name.trimmingCharacters(in: .whitespacesAndNewlines), colorHex: selectedColorHex,
-                     emoji: selectedEmoji, kind: selectedKind, unitLabel: selectedKind == .numeric ? unitLabel : nil,
-                     dailyTarget: selectedKind == .numeric ? dailyTarget : nil, schedule: schedule, reminders: reminders, startDate: startDate,
-                     endDate: originalHabit?.endDate, isActive: isActive, categoryId: finalCategoryId, suggestionId: originalHabit?.suggestionId, locationConfiguration: locationConfiguration)
+        let schedule: HabitSchedule = selectedSchedule == .daily
+            ? .daily
+            : .daysOfWeek(selectedDaysOfWeek)
+
+        // For habits created from suggestions, preserve the original category
+        let finalCategoryId = (isEditMode && originalHabit?.suggestionId != nil)
+            ? originalHabit?.categoryId
+            : selectedCategory?.id
+
+        return Habit(
+            id: originalHabit?.id ?? UUID(),
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            colorHex: selectedColorHex,
+            emoji: selectedEmoji,
+            kind: selectedKind,
+            unitLabel: selectedKind == .numeric ? unitLabel : nil,
+            dailyTarget: selectedKind == .numeric ? dailyTarget : nil,
+            schedule: schedule,
+            reminders: reminders,
+            startDate: startDate,
+            endDate: originalHabit?.endDate,
+            isActive: isActive,
+            categoryId: finalCategoryId,
+            suggestionId: originalHabit?.suggestionId,
+            locationConfiguration: locationConfiguration
+        )
     }
 }
 
 // MARK: - Location Management
 
 extension HabitDetailViewModel {
+
     public func checkLocationAuthStatus() async {
-        isCheckingLocationAuth = true; locationAuthStatus = await permissionCoordinator.checkLocationStatus(); isCheckingLocationAuth = false
+        isCheckingLocationAuth = true
+        locationAuthStatus = await permissionCoordinator.checkLocationStatus()
+        isCheckingLocationAuth = false
     }
 
     public func requestLocationPermission(requestAlways: Bool) async -> LocationPermissionOutcome {
         isRequestingLocationPermission = true
+
         let result = await permissionCoordinator.requestLocationPermission(requestAlways: requestAlways)
-        locationAuthStatus = result.status; isRequestingLocationPermission = false; return result
+        locationAuthStatus = result.status
+        isRequestingLocationPermission = false
+
+        return result
     }
 
-    public func openLocationSettings() async { @Injected(\.locationPermissionService) var locationPermissionService; await locationPermissionService.openAppSettings() }
+    public func openLocationSettings() async {
+        @Injected(\.locationPermissionService) var locationPermissionService
+        await locationPermissionService.openAppSettings()
+    }
 
     public func handleMapPickerDismiss() {
-        if mapPickerDismissResult == .savedValidLocation { mapPickerDismissResult = .none; return }
-        guard let config = locationConfiguration else { return }
-        if config.coordinate.latitude == 0 && config.coordinate.longitude == 0 { locationConfiguration = nil }
+        if mapPickerDismissResult == .savedValidLocation {
+            mapPickerDismissResult = .none
+            return
+        }
+
+        guard let config = locationConfiguration else {
+            return
+        }
+
+        let isDefaultCoordinate = config.coordinate.latitude == 0 && config.coordinate.longitude == 0
+        if isDefaultCoordinate {
+            locationConfiguration = nil
+        }
     }
 
-    public func updateLocationConfiguration(_ config: LocationConfiguration?) { locationConfiguration = config }
+    public func updateLocationConfiguration(_ config: LocationConfiguration?) {
+        locationConfiguration = config
+    }
 
     public func toggleLocationEnabled(_ enabled: Bool) {
-        guard enabled else { locationConfiguration = nil; return }
+        guard enabled else {
+            locationConfiguration = nil
+            return
+        }
+
         mapPickerDismissResult = .none
+
         if locationConfiguration != nil {
-            var config = locationConfiguration!; config.isEnabled = true; locationConfiguration = config
+            var config = locationConfiguration!
+            config.isEnabled = true
+            locationConfiguration = config
         } else {
-            locationConfiguration = LocationConfiguration.create(from: CLLocationCoordinate2D(latitude: 0, longitude: 0), radius: LocationConfiguration.defaultRadius, triggerType: .entry, frequency: .oncePerDay, isEnabled: true)
+            locationConfiguration = LocationConfiguration.create(
+                from: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                radius: LocationConfiguration.defaultRadius,
+                triggerType: .entry,
+                frequency: .oncePerDay,
+                isEnabled: true
+            )
+
             Task { @MainActor in
                 await checkLocationAuthStatus()
+
                 if locationAuthStatus == .notDetermined || locationAuthStatus == .authorizedWhenInUse {
                     let result = await requestLocationPermission(requestAlways: true)
-                    if result.canMonitorGeofences { showMapPicker = true } else { locationConfiguration = nil }
-                } else if locationAuthStatus.canMonitorGeofences { showMapPicker = true } else { locationConfiguration = nil }
+                    if result.canMonitorGeofences {
+                        showMapPicker = true
+                    } else {
+                        locationConfiguration = nil
+                    }
+                } else if locationAuthStatus.canMonitorGeofences {
+                    showMapPicker = true
+                } else {
+                    locationConfiguration = nil
+                }
             }
         }
     }

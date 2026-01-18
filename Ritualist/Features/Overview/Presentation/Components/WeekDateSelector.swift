@@ -31,7 +31,7 @@ struct WeekDateSelector: View {
     /// Weeks regenerate when user approaches edges, so this is effectively unlimited scrolling.
     private static let weeksBuffer = 4
 
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) var colorScheme
     @State private var currentWeekIndex: Int
     @State private var weeks: [[Date]] = []
     @State private var lastRegenerationTime: Date = .distantPast
@@ -160,94 +160,160 @@ struct WeekDateSelector: View {
     private var dateHeader: some View {
         HStack {
             HStack(spacing: 4) {
-                if isViewingToday { Text("Today,").font(CardDesign.title3).fontWeight(.semibold).foregroundColor(.primary) }
-                Text(dayName(for: selectedDate)).font(CardDesign.title3).fontWeight(.semibold).foregroundColor(.primary)
-                Text(monthAndDate(for: selectedDate)).font(CardDesign.title3).foregroundColor(.secondary)
+                if isViewingToday {
+                    Text("Today,")
+                        .font(CardDesign.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                }
+                Text(dayName(for: selectedDate))
+                    .font(CardDesign.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Text(monthAndDate(for: selectedDate))
+                    .font(CardDesign.title3)
+                    .foregroundColor(.secondary)
             }
-            .accessibilityElement(children: .combine).accessibilityLabel(fullDateAccessibilityLabel)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(fullDateAccessibilityLabel)
             Spacer()
             returnToTodayButton
         }
     }
 
     private var returnToTodayButton: some View {
-        Button { HapticFeedbackService.shared.trigger(.light); let idx = weekIndexForDate(Date()); if currentWeekIndex != idx { currentWeekIndex = idx }; onGoToToday() } label: {
+        Button {
+            HapticFeedbackService.shared.trigger(.light)
+            let todayIndex = weekIndexForDate(Date())
+            if currentWeekIndex != todayIndex {
+                currentWeekIndex = todayIndex
+            }
+            onGoToToday()
+        } label: {
             HStack(spacing: 4) {
-                Image(systemName: "arrow.uturn.backward").font(.system(size: 11, weight: .semibold, design: .rounded))
-                Text("Today").font(CardDesign.caption).fontWeight(.semibold)
-            }.foregroundColor(AppColors.brand).padding(.horizontal, 10).padding(.vertical, 6)
-            .background(AppColors.brand.opacity(0.12)).cornerRadius(CardDesign.innerCornerRadius)
-        }.buttonStyle(PlainButtonStyle()).opacity(shouldShowReturnToToday ? 1 : 0).disabled(!shouldShowReturnToToday)
-        .accessibilityLabel("Return to today").accessibilityHidden(!shouldShowReturnToToday).accessibilityIdentifier(AccessibilityID.Overview.todayButton)
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                Text("Today")
+                    .font(CardDesign.caption)
+                    .fontWeight(.semibold)
+            }
+            .foregroundColor(AppColors.brand)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(AppColors.brand.opacity(0.12))
+            .cornerRadius(CardDesign.innerCornerRadius)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .opacity(shouldShowReturnToToday ? 1 : 0)
+        .disabled(!shouldShowReturnToToday)
+        .accessibilityLabel("Return to today")
+        .accessibilityHidden(!shouldShowReturnToToday)
+        .accessibilityIdentifier(AccessibilityID.Overview.todayButton)
     }
 
     // MARK: - Week Picker
 
     private var weekPicker: some View {
         TabView(selection: $currentWeekIndex) {
-            ForEach(Array(weeks.enumerated()), id: \.offset) { index, week in weekRow(for: week).tag(index) }
-        }.tabViewStyle(.page(indexDisplayMode: .never)).frame(height: 85).padding(.horizontal, -Spacing.large)
-        .sensoryFeedback(.selection, trigger: currentWeekIndex)
+            ForEach(Array(weeks.enumerated()), id: \.offset) { index, week in
+                weekRow(for: week)
+                    .tag(index)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .frame(height: 85)
+        .padding(.horizontal, -Spacing.large)
+        .onChange(of: currentWeekIndex) { _, _ in
+            HapticFeedbackService.shared.trigger(.selection)
+        }
     }
 
     // MARK: - Week Row & Day Column
 
     private func weekRow(for week: [Date]) -> some View {
-        HStack(spacing: 0) { ForEach(week, id: \.self) { date in dayColumn(for: date).frame(maxWidth: .infinity) } }.padding(.horizontal, 12)
+        HStack(spacing: 0) {
+            ForEach(week, id: \.self) { date in
+                dayColumn(for: date)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 12)
     }
 
     private func dayColumn(for date: Date) -> some View {
         let isSelected = CalendarUtils.areSameDayLocal(date, selectedDate, timezone: timezone)
         let isDateToday = CalendarUtils.isTodayLocal(date, timezone: timezone)
-        let canSelect = canSelectDate(date); let isFutureDate = isFuture(date); let completion = completionForDate(date)
-        return Button { if canSelect { triggerHapticFeedback(); onDateSelected(date) } } label: {
+        let canSelect = canSelectDate(date)
+        let isFutureDate = isFuture(date)
+        let completion = completionForDate(date)
+
+        return Button {
+            if canSelect {
+                triggerHapticFeedback()
+                onDateSelected(date)
+            }
+        } label: {
             VStack(spacing: 4) {
-                Circle().fill(isDateToday ? AppColors.brand : Color.clear).frame(width: 5, height: 5)
-                Text(dayAbbreviation(for: date)).font(.system(size: 11, weight: .medium, design: .rounded)).foregroundColor(dayAbbreviationColor(isSelected: isSelected, isFuture: isFutureDate))
-                dayCircleIndicator(isSelected: isSelected, isDateToday: isDateToday, isFutureDate: isFutureDate, completion: completion, date: date)
-            }.padding(.horizontal, 4).padding(.vertical, 6)
-            .background(RoundedRectangle(cornerRadius: 22).fill(dayBackgroundColor(isSelected: isSelected, isFuture: isFutureDate)))
-            .overlay(RoundedRectangle(cornerRadius: 22).stroke(AppColors.brand.opacity(0.2), lineWidth: isSelected ? 1 : 0)).contentShape(Rectangle())
-        }.buttonStyle(PlainButtonStyle()).disabled(!canSelect)
+                Circle()
+                    .fill(isDateToday ? AppColors.brand : Color.clear)
+                    .frame(width: 5, height: 5)
+                Text(dayAbbreviation(for: date))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(dayAbbreviationColor(isSelected: isSelected, isFuture: isFutureDate))
+                dayCircleIndicator(
+                    isSelected: isSelected,
+                    isDateToday: isDateToday,
+                    isFutureDate: isFutureDate,
+                    completion: completion,
+                    date: date
+                )
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(dayBackgroundColor(isSelected: isSelected, isFuture: isFutureDate))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22)
+                    .stroke(AppColors.brand.opacity(0.2), lineWidth: isSelected ? 1 : 0)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(!canSelect)
         .accessibilityLabel(accessibilityLabel(for: date, isSelected: isSelected, isToday: isDateToday, isFuture: isFutureDate))
-        .accessibilityAddTraits(isSelected ? .isSelected : []).accessibilityHint(isFutureDate ? "Future date, not available" : (canSelect ? "Double tap to select" : "Not available"))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(isFutureDate ? "Future date, not available" : (canSelect ? "Double tap to select" : "Not available"))
     }
 
     @ViewBuilder
-    private func dayCircleIndicator(isSelected: Bool, isDateToday: Bool, isFutureDate: Bool, completion: Double, date: Date) -> some View {
+    private func dayCircleIndicator(
+        isSelected: Bool,
+        isDateToday: Bool,
+        isFutureDate: Bool,
+        completion: Double,
+        date: Date
+    ) -> some View {
         ZStack {
-            if isFutureDate { Circle().fill(Color(.systemGray4)).frame(width: 36, height: 36)
-            } else { Circle().fill(dayCircleColor(completion: completion)).frame(width: 36, height: 36); if isSelected { Circle().stroke(AppColors.brand, lineWidth: 1.5).frame(width: 36, height: 36) } }
-            Text(dateNumber(for: date)).font(.system(size: 16, weight: isSelected || isDateToday ? .semibold : .regular, design: .rounded))
+            if isFutureDate {
+                Circle()
+                    .fill(Color(.systemGray4))
+                    .frame(width: 36, height: 36)
+            } else {
+                Circle()
+                    .fill(dayCircleColor(completion: completion))
+                    .frame(width: 36, height: 36)
+                if isSelected {
+                    Circle()
+                        .stroke(AppColors.brand, lineWidth: 1.5)
+                        .frame(width: 36, height: 36)
+                }
+            }
+            Text(dateNumber(for: date))
+                .font(.system(size: 16, weight: isSelected || isDateToday ? .semibold : .regular, design: .rounded))
                 .foregroundColor(dateNumberColor(isSelected: isSelected, isToday: isDateToday, isFuture: isFutureDate, completion: completion))
         }
-    }
-
-    // MARK: - Helper Methods
-    private func completionForDate(_ date: Date) -> Double { weeklyData[CalendarUtils.startOfDayLocal(for: date, timezone: timezone)] ?? 0.0 }
-    private func dayCircleColor(completion: Double) -> Color { CardDesign.progressColor(for: completion, noProgressColor: Color(.systemGray5)) }
-    private func isFuture(_ date: Date) -> Bool { CalendarUtils.startOfDayLocal(for: date, timezone: timezone) > CalendarUtils.startOfDayLocal(for: Date(), timezone: timezone) }
-    private func dayAbbreviationColor(isSelected: Bool, isFuture: Bool) -> Color { isSelected ? AppColors.brand : (isFuture ? Color(.systemGray3) : .secondary) }
-    private func canSelectDate(_ date: Date) -> Bool {
-        if CalendarUtils.isTodayLocal(date, timezone: timezone) { return true }
-        return !isFuture(date) && canGoToPrevious
-    }
-    private func dateNumberColor(isSelected: Bool, isToday: Bool, isFuture: Bool, completion: Double) -> Color {
-        if isFuture { return Color(.systemGray2) }; if completion > 0 { return .white }; if isToday { return AppColors.brand }; return .primary
-    }
-    private func dayBackgroundColor(isSelected: Bool, isFuture: Bool) -> Color {
-        let base = colorScheme == .dark ? Color(.systemGray5) : Color(.systemGray6)
-        return isSelected ? AppColors.brand.opacity(colorScheme == .dark ? 0.25 : 0.12) : (isFuture ? base.opacity(0.6) : base)
-    }
-    private func dayName(for date: Date) -> String { CalendarUtils.formatDayAbbreviation(date, timezone: timezone) }
-    private func monthAndDate(for date: Date) -> String { CalendarUtils.formatMonthAndDay(date, timezone: timezone) }
-    private func dayAbbreviation(for date: Date) -> String { CalendarUtils.formatDayAbbreviation(date, timezone: timezone) }
-    private func dateNumber(for date: Date) -> String { CalendarUtils.formatDayNumber(date, timezone: timezone) }
-    private var fullDateAccessibilityLabel: String { CalendarUtils.formatForDisplay(selectedDate, style: .full, timezone: timezone) }
-    private func accessibilityLabel(for date: Date, isSelected: Bool, isToday: Bool, isFuture: Bool) -> String {
-        var label = CalendarUtils.formatForDisplay(date, style: .full, timezone: timezone)
-        if isToday { label += ", today" }; if isSelected { label += ", selected" }; if isFuture { label += ", future date, not available for logging" }
-        return label
     }
 }
 
