@@ -105,11 +105,10 @@ extension OverviewViewModel {
         self.activeStreaks = extractActiveStreaks(from: data)
         self.monthlyCompletionData = extractMonthlyData(from: data)
 
-        // Capture old task and assign new one atomically before cancellation
-        // This ensures rapid successive calls always cancel the correct task
-        let oldTask = childVMConfigTask
+        // Cancel existing task before creating new one to prevent race conditions
+        childVMConfigTask?.cancel()
         childVMConfigTask = Task { @MainActor in
-            oldTask?.cancel()
+            defer { childVMConfigTask = nil }
             guard !Task.isCancelled else { return }
             let userName = await getUserName()
             guard !Task.isCancelled else { return }
