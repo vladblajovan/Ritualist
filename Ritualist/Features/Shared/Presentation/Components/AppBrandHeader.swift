@@ -268,11 +268,6 @@ struct AppBrandHeader: View {
         ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
         ?? "Ritualist"
 
-    private enum AnimationTiming {
-        static let progressAnimationDelay: UInt64 = 600_000_000
-        static let glowFadeDelay: UInt64 = 2_000_000_000
-    }
-
     // MARK: - Body
 
     private var circularProgressOverhang: CGFloat {
@@ -388,7 +383,7 @@ struct AppBrandHeader: View {
                             .allowsHitTesting(false)
                     }
                 }
-                .padding(.trailing, Spacing.xsmall)
+                .padding(.leading, Spacing.xsmall)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

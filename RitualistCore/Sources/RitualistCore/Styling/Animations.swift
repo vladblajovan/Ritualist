@@ -79,3 +79,13 @@ public enum ToastVisualHierarchy {
     /// Uses ~1.5x ratio with scale for natural depth perception
     public static let opacityReductionPerIndex: Double = 0.10
 }
+
+// MARK: - Animation Timing Delays (for Task.sleep)
+
+public enum AnimationTiming {
+    /// Delay before triggering completion glow animation (600ms)
+    public static let progressAnimationDelay: UInt64 = 600_000_000
+
+    /// Duration to display glow effect before fading (2 seconds)
+    public static let glowFadeDelay: UInt64 = 2_000_000_000
+}
