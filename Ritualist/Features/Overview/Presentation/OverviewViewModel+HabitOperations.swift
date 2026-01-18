@@ -62,7 +62,19 @@ extension OverviewViewModel {
     }
 
     /// Get current progress for a habit asynchronously.
+    /// Prefers cached data when available to avoid unnecessary DB queries.
     public func getCurrentProgress(for habit: Habit) async -> Double {
+        // Use cache if available (O(1) lookup vs DB query)
+        if let data = overviewData {
+            let logs = data.logs(for: habit.id, on: viewingDate)
+            if habit.kind == .numeric {
+                return logs.reduce(0.0) { $0 + ($1.value ?? 0.0) }
+            } else {
+                return logs.isEmpty ? 0.0 : 1.0
+            }
+        }
+
+        // Fall back to DB query if cache unavailable
         do {
             let allLogs = try await getLogs.execute(for: habit.id, since: viewingDate, until: viewingDate, timezone: displayTimezone)
             let logsForDate = allLogs.filter { log in
