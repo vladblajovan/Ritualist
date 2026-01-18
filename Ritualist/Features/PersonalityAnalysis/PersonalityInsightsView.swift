@@ -875,7 +875,9 @@ private struct FrequencySelectionView: View {
 private struct ConfidenceInfoSheet: View {
     let confidence: ConfidenceLevel
     @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isIPad: Bool { horizontalSizeClass == .regular }
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -936,12 +938,12 @@ private struct ConfidenceInfoSheet: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+                    Button("Done") { dismiss() }
                 }
             }
         }
+        .presentationDetents(isIPad ? [.large] : [.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func confidenceLevelRow(_ level: ConfidenceLevel, _ description: String) -> some View {
@@ -1044,64 +1046,46 @@ struct BigFiveInfoSheet: View {
 
     private func traitInfoCard(_ trait: PersonalityTrait) -> some View {
         let isHighlighted = trait == highlightedTrait
-
         return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(trait.emoji)
-                    .font(.title2)
-
-                Text(trait.displayName)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                if isHighlighted {
-                    Text("Your tap")
-                        .font(.caption2)
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(4)
-                }
-            }
-
-            Text(trait.shortDescription)
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top) {
-                    Text("High:")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .frame(width: 40, alignment: .leading)
-                    Text(trait.highScoreDescription)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                HStack(alignment: .top) {
-                    Text("Low:")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .frame(width: 40, alignment: .leading)
-                    Text(trait.lowScoreDescription)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.top, 4)
+            traitInfoHeader(trait: trait, isHighlighted: isHighlighted)
+            Text(trait.shortDescription).font(.caption).foregroundColor(.secondary)
+            traitScoreDescriptions(trait: trait)
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isHighlighted ? Color.blue.opacity(0.05) : .gray.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isHighlighted ? Color.blue.opacity(0.2) : Color.clear, lineWidth: 1)
-                )
-        )
+        .background(traitInfoCardBackground(isHighlighted: isHighlighted))
+    }
+
+    @ViewBuilder
+    private func traitInfoHeader(trait: PersonalityTrait, isHighlighted: Bool) -> some View {
+        HStack {
+            Text(trait.emoji).font(.title2)
+            Text(trait.displayName).font(.subheadline).fontWeight(.semibold)
+            Spacer()
+            if isHighlighted {
+                Text("Your tap").font(.caption2).foregroundColor(.blue)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1)).cornerRadius(4)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func traitScoreDescriptions(trait: PersonalityTrait) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top) {
+                Text("High:").font(.caption).fontWeight(.medium).frame(width: 40, alignment: .leading)
+                Text(trait.highScoreDescription).font(.caption).foregroundColor(.secondary)
+            }
+            HStack(alignment: .top) {
+                Text("Low:").font(.caption).fontWeight(.medium).frame(width: 40, alignment: .leading)
+                Text(trait.lowScoreDescription).font(.caption).foregroundColor(.secondary)
+            }
+        }.padding(.top, 4)
+    }
+
+    private func traitInfoCardBackground(isHighlighted: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(isHighlighted ? Color.blue.opacity(0.05) : .gray.opacity(0.05))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(isHighlighted ? Color.blue.opacity(0.2) : Color.clear, lineWidth: 1))
     }
 }

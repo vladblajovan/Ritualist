@@ -379,35 +379,28 @@ public final class SettingsViewModel {
 
 extension SettingsViewModel {
     public func requestNotifications() async {
-        isRequestingNotifications = true
-        error = nil
+        isRequestingNotifications = true; error = nil
         let result = await permissionCoordinator.requestNotificationPermission()
         hasNotificationPermission = result.granted
-        if let permissionError = result.error {
-            self.error = permissionError
-            userActionTracker.trackError(permissionError, context: "notification_permission_request")
+        if let err = result.error {
+            self.error = err
+            userActionTracker.trackError(err, context: "notification_permission_request")
             hasNotificationPermission = await checkNotificationStatus.execute()
-        } else {
-            userActionTracker.track(.notificationSettingsChanged(enabled: result.granted))
-        }
+        } else { userActionTracker.track(.notificationSettingsChanged(enabled: result.granted)) }
         isRequestingNotifications = false
     }
 
     public func requestLocationPermission() async {
-        isRequestingLocationPermission = true
-        error = nil
+        isRequestingLocationPermission = true; error = nil
         userActionTracker.track(.locationPermissionRequested(context: "settings"))
         let result = await permissionCoordinator.requestLocationPermission(requestAlways: true)
         locationAuthStatus = result.status
-        if let permissionError = result.error {
-            self.error = permissionError
-            userActionTracker.trackError(permissionError, context: "location_permission_request")
+        if let err = result.error {
+            self.error = err; userActionTracker.trackError(err, context: "location_permission_request")
         } else if result.isAuthorized {
             userActionTracker.track(.locationPermissionGranted(status: String(describing: result.status), context: "settings"))
             userActionTracker.track(.profileUpdated(field: "location_permission"))
-        } else {
-            userActionTracker.track(.locationPermissionDenied(context: "settings"))
-        }
+        } else { userActionTracker.track(.locationPermissionDenied(context: "settings")) }
         isRequestingLocationPermission = false
     }
 }
@@ -416,42 +409,22 @@ extension SettingsViewModel {
 
 extension SettingsViewModel {
     public func updateUserName(_ name: String) async {
-        isUpdatingUser = true
-        error = nil
-        profile.name = name
-        profile.updatedAt = Date()
-        do {
-            try await saveProfile.execute(profile)
-            userActionTracker.track(.profileUpdated(field: "name"))
-            try? await syncWithiCloud.execute()
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "user_name_update", additionalProperties: ["name": name])
-        }
+        isUpdatingUser = true; error = nil; profile.name = name; profile.updatedAt = Date()
+        do { try await saveProfile.execute(profile); userActionTracker.track(.profileUpdated(field: "name")); try? await syncWithiCloud.execute()
+        } catch { self.error = error; userActionTracker.trackError(error, context: "user_name_update", additionalProperties: ["name": name]) }
         isUpdatingUser = false
     }
 
     public func cancelSubscription() async {
-        isCancellingSubscription = true
-        error = nil
-        do { try await clearPurchases.execute() } catch {
-            logger.log("Failed to clear purchases: \(error)", level: .error, category: .subscription)
-        }
+        isCancellingSubscription = true; error = nil
+        do { try await clearPurchases.execute() } catch { logger.log("Failed to clear purchases: \(error)", level: .error, category: .subscription) }
         isCancellingSubscription = false
     }
 
     public func updateAppearance(_ appearance: Int) async {
-        profile.appearance = appearance
-        profile.updatedAt = Date()
-        appearanceManager.updateFromProfile(profile)
-        do {
-            try await saveProfile.execute(profile)
-            userActionTracker.track(.profileUpdated(field: "appearance"))
-            try? await syncWithiCloud.execute()
-        } catch {
-            self.error = error
-            userActionTracker.trackError(error, context: "appearance_update", additionalProperties: ["appearance": String(appearance)])
-        }
+        profile.appearance = appearance; profile.updatedAt = Date(); appearanceManager.updateFromProfile(profile)
+        do { try await saveProfile.execute(profile); userActionTracker.track(.profileUpdated(field: "appearance")); try? await syncWithiCloud.execute()
+        } catch { self.error = error; userActionTracker.trackError(error, context: "appearance_update", additionalProperties: ["appearance": String(appearance)]) }
     }
 }
 
@@ -766,7 +739,6 @@ extension SettingsViewModel {
             iCloudKeyValueService.resetOnboardingFlag()
             iCloudKeyValueService.resetLocalOnboardingFlag()
             userDefaults.removeObject(forKey: UserDefaultsKeys.categorySeedingCompleted)
-            // Schedule tip reset so training tour can show after re-onboarding
             userDefaults.set(true, forKey: "shouldResetTipsOnNextLaunch")
             onboardingViewModel.reset()
             userActionTracker.track(.custom(event: "debug_onboarding_reset", parameters: [:]))
@@ -790,14 +762,12 @@ extension SettingsViewModel {
         testDataProgress = 0.0
         testDataProgressMessage = "Starting test data population..."
         error = nil
-
         populateTestData.progressUpdate = { [weak self] message, progress in
             Task { @MainActor in
                 self?.testDataProgressMessage = message
                 self?.testDataProgress = progress
             }
         }
-
         do {
             try await populateTestData.execute(scenario: scenario)
             databaseStats = try await getDatabaseStats.execute()
@@ -806,7 +776,6 @@ extension SettingsViewModel {
             self.error = error
             userActionTracker.trackError(error, context: "debug_test_data_population")
         }
-
         isPopulatingTestData = false
         testDataProgress = 0.0
         testDataProgressMessage = ""
@@ -824,8 +793,6 @@ extension SettingsViewModel {
         return Double(info.resident_size) / 1024.0 / 1024.0
     }
 
-    public func updatePerformanceStats() {
-        _ = memoryUsageMB
-    }
+    public func updatePerformanceStats() { _ = memoryUsageMB }
 }
 #endif

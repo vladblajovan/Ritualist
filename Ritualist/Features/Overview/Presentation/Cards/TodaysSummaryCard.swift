@@ -487,81 +487,43 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     @ViewBuilder
     private func habitsSection(summary: TodaysSummary) -> some View {
-        // iPad: 3-column grid within each section
-        // iPhone: stacked layout
-        if horizontalSizeClass == .regular {
-            VStack(alignment: .leading, spacing: 16) {
-                // Remaining section - only show if there are remaining habits
-                // Supports compact view (emoji circles only) and expanded view (full habit rows)
-                // Use array count directly to ensure sync with visibleIncompleteHabits
-                if !visibleIncompleteHabits.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        remainingSectionHeader(count: visibleIncompleteHabits.count)
+        VStack(alignment: .leading, spacing: 16) {
+            remainingHabitsSection(summary: summary)
+            completedHabitsSection(summary: summary)
+        }
+    }
 
-                        if isRemainingViewCompact {
-                            compactRemainingCircles(habits: visibleIncompleteHabits)
-                                .padding(.horizontal, 6)
-                        } else {
-                            LazyVGrid(columns: iPadGrid, spacing: 8) {
-                                ForEach(visibleIncompleteHabits, id: \.id) { habit in
-                                    habitRow(habit: habit, isCompleted: false)
-                                }
-                            }
-                        }
+    @ViewBuilder
+    private func remainingHabitsSection(summary: TodaysSummary) -> some View {
+        if !visibleIncompleteHabits.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                remainingSectionHeader(count: visibleIncompleteHabits.count)
+                if isRemainingViewCompact {
+                    compactRemainingCircles(habits: visibleIncompleteHabits).padding(.horizontal, 6)
+                } else if horizontalSizeClass == .regular {
+                    LazyVGrid(columns: iPadGrid, spacing: 8) {
+                        ForEach(visibleIncompleteHabits, id: \.id) { habit in habitRow(habit: habit, isCompleted: false) }
                     }
-                }
-
-                // Completed section - only show if there are completed habits
-                // Supports compact view (emoji circles only) and expanded view (full habit rows)
-                if !summary.completedHabits.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        completedSectionHeader(count: summary.completedHabits.count)
-
-                        if isCompletedViewCompact {
-                            compactCompletedCircles(habits: summary.completedHabits)
-                                .padding(.horizontal, 6)
-                        } else {
-                            LazyVGrid(columns: iPadGrid, spacing: 8) {
-                                ForEach(summary.completedHabits, id: \.id) { habit in
-                                    habitRow(habit: habit, isCompleted: true)
-                                }
-                            }
-                        }
-                    }
+                } else {
+                    incompleteHabitsContent(summary: summary)
                 }
             }
-        } else {
-            // iPhone: Stacked layout with labels
-            VStack(alignment: .leading, spacing: 16) {
-                // Remaining section - only show if there are remaining habits
-                // Supports compact view (emoji circles only) and expanded view (full habit rows)
-                // Use array count directly to ensure sync with visibleIncompleteHabits
-                if !visibleIncompleteHabits.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        remainingSectionHeader(count: visibleIncompleteHabits.count)
+        }
+    }
 
-                        if isRemainingViewCompact {
-                            compactRemainingCircles(habits: visibleIncompleteHabits)
-                                .padding(.horizontal, 6)
-                        } else {
-                            incompleteHabitsContent(summary: summary)
-                        }
+    @ViewBuilder
+    private func completedHabitsSection(summary: TodaysSummary) -> some View {
+        if !summary.completedHabits.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                completedSectionHeader(count: summary.completedHabits.count)
+                if isCompletedViewCompact {
+                    compactCompletedCircles(habits: summary.completedHabits).padding(.horizontal, 6)
+                } else if horizontalSizeClass == .regular {
+                    LazyVGrid(columns: iPadGrid, spacing: 8) {
+                        ForEach(summary.completedHabits, id: \.id) { habit in habitRow(habit: habit, isCompleted: true) }
                     }
-                }
-
-                // Completed section - only show if there are completed habits
-                // Supports compact view (emoji circles only) and expanded view (full habit rows)
-                if !summary.completedHabits.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        completedSectionHeader(count: summary.completedHabits.count)
-
-                        if isCompletedViewCompact {
-                            compactCompletedCircles(habits: summary.completedHabits)
-                                .padding(.horizontal, 6)
-                        } else {
-                            completedHabitsContent(summary: summary)
-                        }
-                    }
+                } else {
+                    completedHabitsContent(summary: summary)
                 }
             }
         }
@@ -811,9 +773,7 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func habitRow(habit: Habit, isCompleted: Bool) -> some View {
         let scheduleStatus = getScheduleStatus(habit)
-        // Disable if: not available by schedule OR logging is locked (over habit limit)
         let isDisabled = !isCompleted && (!scheduleStatus.isAvailable || isLoggingLocked)
-        // Long press only enabled if: not completed, available, has callback, AND not locked
         let canLongPress = !isCompleted && scheduleStatus.isAvailable && onLongPressComplete != nil && !isLoggingLocked
 
         HStack(spacing: 0) {
@@ -826,76 +786,41 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
         .opacity(isDisabled ? 0.6 : 1.0)
         .completionGlow(isGlowing: glowingHabitId == habit.id)
         .longPressProgress(
-            duration: 0.8,
-            isEnabled: canLongPress,
-            progress: Binding(
-                get: { longPressHabitId == habit.id ? longPressProgress : 0.0 },
-                set: { newValue in
-                    if newValue > 0 {
-                        longPressHabitId = habit.id
-                    }
-                    longPressProgress = newValue
-                }
-            ),
-            onStart: {
-                // Track which habit is being long-pressed
-                longPressHabitId = habit.id
-                longPressProgress = 0.0
-                // Dismiss tips when user starts learning the gesture
-                // TapHabitTip chain event donated immediately (user is learning)
-                TapHabitTip.wasDismissed.sendDonation()
-                tapHabitTip.invalidate(reason: .actionPerformed)
-                // LongPressLogTip dismissed visually, but chain event donated in onComplete
-                // (after habit actually completes and moves to completed section)
-                longPressLogTip.invalidate(reason: .actionPerformed)
-            },
-            onComplete: {
-                // Quick-log the habit
-                // For binary: completes the habit
-                // For numeric: logs the daily target
-                onLongPressComplete?(habit)
-
-                // Add to recently completed set to keep checkmark visible
-                recentlyCompletedViaLongPress.insert(habit.id)
-
-                // Reset progress but delay clearing longPressHabitId to prevent button tap from firing
-                longPressProgress = 0.0
-
-                // Clear longPressHabitId after short delay (after button tap event passes)
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                    longPressHabitId = nil
-                }
-
-                // Trigger tip for completed habits
-                TapCompletedHabitTip.firstHabitCompleted.sendDonation()
-
-                // Donate long-press tip chain events after short delay
-                // This ensures avatar tip appears AFTER habit moves to completed section
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 500ms - time for UI to update
-                    LongPressLogTip.wasDismissed.sendDonation()
-                    CircleProgressTip.longPressTipDismissed.sendDonation()
-                    logger.log("Long-press complete - circle progress tip enabled", level: .debug, category: .ui)
-                }
-
-                // Schedule removal from recently completed set after delay
-                longPressCompletionTasks[habit.id]?.cancel()
-                longPressCompletionTasks[habit.id] = Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: AnimationTiming.longPressCheckmarkDisplay)
-                    guard !Task.isCancelled else { return }
-                    _ = withAnimation(.easeOut(duration: 0.3)) {
-                        recentlyCompletedViaLongPress.remove(habit.id)
-                    }
-                    longPressCompletionTasks.removeValue(forKey: habit.id)
-                }
-            },
-            onCancel: {
-                // User released early - reset state
-                longPressHabitId = nil
-                longPressProgress = 0.0
-            }
+            duration: 0.8, isEnabled: canLongPress,
+            progress: Binding(get: { longPressHabitId == habit.id ? longPressProgress : 0.0 },
+                              set: { if $0 > 0 { longPressHabitId = habit.id }; longPressProgress = $0 }),
+            onStart: { handleLongPressStart(habit: habit) },
+            onComplete: { handleLongPressComplete(habit: habit) },
+            onCancel: { longPressHabitId = nil; longPressProgress = 0.0 }
         )
+    }
+
+    private func handleLongPressStart(habit: Habit) {
+        longPressHabitId = habit.id; longPressProgress = 0.0
+        TapHabitTip.wasDismissed.sendDonation()
+        tapHabitTip.invalidate(reason: .actionPerformed)
+        longPressLogTip.invalidate(reason: .actionPerformed)
+    }
+
+    private func handleLongPressComplete(habit: Habit) {
+        onLongPressComplete?(habit)
+        recentlyCompletedViaLongPress.insert(habit.id)
+        longPressProgress = 0.0
+        Task { @MainActor in try? await Task.sleep(nanoseconds: 100_000_000); longPressHabitId = nil }
+        TapCompletedHabitTip.firstHabitCompleted.sendDonation()
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            LongPressLogTip.wasDismissed.sendDonation()
+            CircleProgressTip.longPressTipDismissed.sendDonation()
+            logger.log("Long-press complete - circle progress tip enabled", level: .debug, category: .ui)
+        }
+        longPressCompletionTasks[habit.id]?.cancel()
+        longPressCompletionTasks[habit.id] = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: AnimationTiming.longPressCheckmarkDisplay)
+            guard !Task.isCancelled else { return }
+            _ = withAnimation(.easeOut(duration: 0.3)) { recentlyCompletedViaLongPress.remove(habit.id) }
+            longPressCompletionTasks.removeValue(forKey: habit.id)
+        }
     }
 
     @ViewBuilder
@@ -942,107 +867,60 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
     @ViewBuilder
     private func habitEmojiView(habit: Habit, isCompleted: Bool) -> some View {
-        // Show long-press UI when this habit is being long-pressed (longPressHabitId is set on press start)
         let isLongPressing = longPressHabitId == habit.id
-        let currentLongPressProgress = isLongPressing ? longPressProgress : 0.0
-        // Only show long-press completion indicator for INCOMPLETE habits
-        // Once a habit moves to Completed section, don't show the overlay
+        let currentProgress = isLongPressing ? longPressProgress : 0.0
         let isRecentlyCompleted = !isCompleted && recentlyCompletedViaLongPress.contains(habit.id)
-
-        // Crossfade threshold: emoji fades out and checkmark fades in between 0.8 and 1.0
-        let crossfadeStart: Double = 0.8
-        let emojiOpacity: Double = {
-            if isRecentlyCompleted { return 0 }
-            if !isLongPressing { return 1.0 }
-            if currentLongPressProgress < crossfadeStart { return 1.0 }
-            // Fade from 1.0 to 0.0 as progress goes from 0.8 to 1.0
-            return max(0, 1.0 - (currentLongPressProgress - crossfadeStart) / (1.0 - crossfadeStart))
-        }()
-        let checkmarkOpacity: Double = {
-            if isRecentlyCompleted { return 1.0 }
-            if !isLongPressing { return 0 }
-            if currentLongPressProgress < crossfadeStart { return 0 }
-            // Fade from 0.0 to 1.0 as progress goes from 0.8 to 1.0
-            return min(1.0, (currentLongPressProgress - crossfadeStart) / (1.0 - crossfadeStart))
-        }()
-
-        // Background turns green when checkmark is visible
-        let showGreenBackground = isRecentlyCompleted || (isLongPressing && currentLongPressProgress >= crossfadeStart)
+        let opacities = calculateCrossfadeOpacities(isLongPressing: isLongPressing, progress: currentProgress, isRecentlyCompleted: isRecentlyCompleted)
+        let showGreen = isRecentlyCompleted || (isLongPressing && currentProgress >= 0.8)
 
         ZStack {
-            // Background circle - transitions to green as checkmark appears
-            Circle()
-                .fill(Color(hex: habit.colorHex).opacity(0.15))
-                .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
-                .overlay(
-                    Circle()
-                        .fill(Color.green.opacity(0.15))
-                        .opacity(showGreenBackground ? 1 : 0)
-                )
-
-            // Numeric habit progress ring (shown when NOT long-pressing and NOT recently completed)
+            emojiBackgroundCircle(habit: habit, showGreen: showGreen)
             if habit.kind == .numeric && !isCompleted && !isLongPressing && !isRecentlyCompleted {
-                let currentValue = getProgress(habit)
-                let target = habit.dailyTarget ?? 1.0
-                let actualProgress = calculateProgress(current: currentValue, target: target)
-                let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
-
-                Circle()
-                    .trim(from: 0, to: animatedProgress)
-                    .stroke(
-                        .linearGradient(
-                            colors: progressGradientColors(for: actualProgress),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-                    )
-                    .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
-                    .rotationEffect(.degrees(-90))
+                numericProgressRing(habit: habit)
             }
+            longPressProgressRing(habit: habit, isLongPressing: isLongPressing)
+            if isRecentlyCompleted && !isLongPressing { completedGreenRing }
+            Text(habit.emoji ?? "📊").font(CardDesign.title2).opacity(opacities.emoji)
+            Image(systemName: "checkmark").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(.green).opacity(opacities.checkmark)
+        }.animation(.easeInOut(duration: 0.3), value: isRecentlyCompleted)
+    }
 
-            // Long-press progress ring - always rendered, animates trim from 0 to 1
-            Circle()
-                .trim(from: 0, to: longPressHabitId == habit.id ? longPressProgress : 0.0)
-                .stroke(
-                    LinearGradient(
-                        colors: [.green, .green.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                )
-                .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
-                .rotationEffect(.degrees(-90))
-                .opacity(isLongPressing ? 1 : 0)
-                .animation(.linear(duration: 0.65), value: longPressProgress)
+    private func calculateCrossfadeOpacities(isLongPressing: Bool, progress: Double, isRecentlyCompleted: Bool) -> (emoji: Double, checkmark: Double) {
+        let start = 0.8
+        if isRecentlyCompleted { return (0, 1.0) }
+        if !isLongPressing { return (1.0, 0) }
+        if progress < start { return (1.0, 0) }
+        let fade = (progress - start) / (1.0 - start)
+        return (max(0, 1.0 - fade), min(1.0, fade))
+    }
 
-            // Full green ring when recently completed (after long-press release)
-            if isRecentlyCompleted && !isLongPressing {
-                Circle()
-                    .stroke(
-                        LinearGradient(
-                            colors: [.green, .green.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                    )
-                    .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
-            }
+    @ViewBuilder private func emojiBackgroundCircle(habit: Habit, showGreen: Bool) -> some View {
+        Circle().fill(Color(hex: habit.colorHex).opacity(0.15)).frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
+            .overlay(Circle().fill(Color.green.opacity(0.15)).opacity(showGreen ? 1 : 0))
+    }
 
-            // Emoji - visible until 0.8, then fades out
-            Text(habit.emoji ?? "📊")
-                .font(CardDesign.title2)
-                .opacity(emojiOpacity)
+    @ViewBuilder private func numericProgressRing(habit: Habit) -> some View {
+        let currentValue = getProgress(habit); let target = habit.dailyTarget ?? 1.0
+        let actualProgress = calculateProgress(current: currentValue, target: target)
+        let animatedProgress = habitAnimatedProgress[habit.id] ?? actualProgress
+        Circle().trim(from: 0, to: animatedProgress)
+            .stroke(.linearGradient(colors: progressGradientColors(for: actualProgress), startPoint: .topLeading, endPoint: .bottomTrailing),
+                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge).rotationEffect(.degrees(-90))
+    }
 
-            // Checkmark - starts appearing at 0.8, fully visible at 1.0
-            Image(systemName: "checkmark")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.green)
-                .opacity(checkmarkOpacity)
-        }
-        .animation(.easeInOut(duration: 0.3), value: isRecentlyCompleted)
+    @ViewBuilder private func longPressProgressRing(habit: Habit, isLongPressing: Bool) -> some View {
+        Circle().trim(from: 0, to: longPressHabitId == habit.id ? longPressProgress : 0.0)
+            .stroke(LinearGradient(colors: [.green, .green.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge).rotationEffect(.degrees(-90))
+            .opacity(isLongPressing ? 1 : 0).animation(.linear(duration: 0.65), value: longPressProgress)
+    }
+
+    private var completedGreenRing: some View {
+        Circle().stroke(LinearGradient(colors: [.green, .green.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            .frame(width: IconSize.xxxlarge, height: IconSize.xxxlarge)
     }
 
     @ViewBuilder
@@ -1070,71 +948,46 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private func habitRowTrailingButton(habit: Habit, isCompleted: Bool, scheduleStatus: HabitScheduleStatus) -> some View {
         if isCompleted {
-            Button {
-                habitToDelete = habit
-                showingDeleteAlert = true
-            } label: {
-                Image(systemName: "ellipsis.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray.opacity(0.8))
-                    .padding(.leading, 8)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(PlainButtonStyle())
+            Button { habitToDelete = habit; showingDeleteAlert = true } label: {
+                Image(systemName: "ellipsis.circle.fill").font(.system(size: 14)).foregroundColor(.gray.opacity(0.8))
+                    .padding(.leading, 8).contentShape(Rectangle())
+            }.buttonStyle(PlainButtonStyle())
         } else {
-            Button {
-                showingScheduleInfoSheet = true
-            } label: {
+            Button { showingScheduleInfoSheet = true } label: {
                 HStack(spacing: 8) {
-                    // Streak at risk indicator (first for urgency)
-                    if showStreakAtRiskIcon, isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
-                        // Fire emoji with streak count badge overlay
-                        ZStack(alignment: .topTrailing) {
-                            Text("🔥")
-                                .font(.system(size: 12))
+                    streakAtRiskIndicator(habit: habit)
+                    habitRowIndicators(habit: habit, scheduleStatus: scheduleStatus)
+                }.padding(.leading, 8).contentShape(Rectangle())
+            }.buttonStyle(PlainButtonStyle())
+        }
+    }
 
-                            // Badge with streak count
-                            Text("\(streakStatus.atRisk)")
-                                .font(.system(size: 8, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 3)
-                                .padding(.vertical, 1)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(red: 0.9, green: 0.45, blue: 0.1))
-                                )
-                                .offset(x: 4, y: -2)
-                        }
-                        .modifier(PulseAnimationModifier())
-                    }
+    @ViewBuilder
+    private func streakAtRiskIndicator(habit: Habit) -> some View {
+        if showStreakAtRiskIcon, isViewingToday, let streakStatus = getStreakStatus?(habit), streakStatus.isAtRisk {
+            ZStack(alignment: .topTrailing) {
+                Text("🔥").font(.system(size: 12))
+                Text("\(streakStatus.atRisk)")
+                    .font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    .padding(.horizontal, 3).padding(.vertical, 1)
+                    .background(Capsule().fill(Color(red: 0.9, green: 0.45, blue: 0.1)))
+                    .offset(x: 4, y: -2)
+            }.modifier(PulseAnimationModifier())
+        }
+    }
 
-                    // Other indicators grouped with tighter spacing
-                    HStack(spacing: 4) {
-                        // Time-based reminders indicator (only for premium users with reminders)
-                        if showTimeReminderIcon, isPremiumUser, !habit.reminders.isEmpty {
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.orange)
-                                .accessibilityLabel("Time-based reminders enabled")
-                        }
-
-                        // Location indicator (only for premium users with location enabled)
-                        if showLocationIcon, isPremiumUser, habit.locationConfiguration?.isEnabled == true {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.purple)
-                                .accessibilityLabel("Location-based reminders enabled")
-                        }
-
-                        if showScheduleIcon {
-                            HabitScheduleIndicator(status: scheduleStatus, size: .xlarge, style: .iconOnly)
-                        }
-                    }
-                }
-                .padding(.leading, 8)
-                .contentShape(Rectangle())
+    @ViewBuilder
+    private func habitRowIndicators(habit: Habit, scheduleStatus: HabitScheduleStatus) -> some View {
+        HStack(spacing: 4) {
+            if showTimeReminderIcon, isPremiumUser, !habit.reminders.isEmpty {
+                Image(systemName: "bell.fill").font(.system(size: 14)).foregroundColor(.orange)
+                    .accessibilityLabel("Time-based reminders enabled")
             }
-            .buttonStyle(PlainButtonStyle())
+            if showLocationIcon, isPremiumUser, habit.locationConfiguration?.isEnabled == true {
+                Image(systemName: "location.fill").font(.system(size: 14)).foregroundColor(.purple)
+                    .accessibilityLabel("Location-based reminders enabled")
+            }
+            if showScheduleIcon { HabitScheduleIndicator(status: scheduleStatus, size: .xlarge, style: .iconOnly) }
         }
     }
 
@@ -1249,6 +1102,8 @@ struct TodaysSummaryCard: View { // swiftlint:disable:this type_body_length
 
 private struct NoHabitsScheduledInfoSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isIPad: Bool { horizontalSizeClass == .regular }
 
     var body: some View {
         NavigationStack {
@@ -1260,7 +1115,6 @@ private struct NoHabitsScheduledInfoSheet: View {
                         title: Strings.Overview.noHabitsReasonScheduleTitle,
                         description: Strings.Overview.noHabitsReasonScheduleDesc
                     )
-
                     NoHabitsExplanationRow(
                         icon: "calendar.badge.exclamationmark",
                         iconColor: .blue,
@@ -1277,12 +1131,11 @@ private struct NoHabitsScheduledInfoSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(Strings.Button.done) {
-                        dismiss()
-                    }
+                    Button(Strings.Button.done) { dismiss() }
                 }
             }
         }
+        .presentationDetents(isIPad ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
     }
 }

@@ -116,73 +116,52 @@ private struct HabitsAssistantSheetModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $isPresented) {
-                HabitsAssistantSheet(
-                    existingHabits: existingHabits,
-                    isFirstVisit: isFirstVisit,
-                    onShowPaywall: {
-                        // Cancel any pending reopen task
-                        pendingReopenTask?.cancel()
-                        pendingReopenTask = nil
-
-                        shouldReopenAssistant = true
-                        isPresented = false
-
-                        // Cancel any existing paywall task before creating new one
-                        pendingPaywallTask?.cancel()
-
-                        // Delay paywall presentation to allow sheet dismiss animation to complete
-                        pendingPaywallTask = Task {
-                            try? await Task.sleep(for: .milliseconds(500))
-                            guard !Task.isCancelled else { return }
-                            await paywallViewModel.load()
-                            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
-                            showingPaywall = true
-                        }
-                    }
-                )
-                .onDisappear {
-                    Task {
-                        // Refresh data FIRST so existingHabits is up-to-date for next sheet open
-                        await onDataRefreshNeeded()
-
-                        // Reset VM state AFTER data refresh (singleton pattern)
-                        Container.shared.habitsAssistantSheetViewModel().reset()
-
-                        // Donate tip event when first-visit assistant closes (post-onboarding)
-                        // isFirstVisit is ONLY true when opened as part of onboarding flow
-                        if isFirstVisit {
-                            await TapHabitTip.habitsAssistantClosed.donate()
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $showingPaywall) {
-                PaywallView(vm: paywallViewModel)
-                    .onDisappear {
-                        paywallViewModel.trackPaywallDismissed()
-                        if shouldReopenAssistant {
-                            shouldReopenAssistant = false
-
-                            // Cancel any existing reopen task before creating new one
-                            pendingReopenTask?.cancel()
-
-                            // Wait for dismissal animation before reopening
-                            pendingReopenTask = Task {
-                                try? await Task.sleep(for: .seconds(1.0))
-                                guard !Task.isCancelled else { return }
-                                isPresented = true
-                            }
-                        }
-                    }
-            }
+            .sheet(isPresented: $isPresented) { assistantSheet }
+            .sheet(isPresented: $showingPaywall) { paywallSheet }
             .onChange(of: isPresented) { _, newValue in
-                // If user manually opens assistant, cancel any pending reopen task
-                if newValue {
-                    pendingReopenTask?.cancel()
-                    pendingReopenTask = nil
-                }
+                if newValue { pendingReopenTask?.cancel(); pendingReopenTask = nil }
             }
+    }
+
+    private var assistantSheet: some View {
+        HabitsAssistantSheet(existingHabits: existingHabits, isFirstVisit: isFirstVisit, onShowPaywall: handleShowPaywall)
+            .onDisappear { Task { await handleAssistantDismiss() } }
+    }
+
+    private var paywallSheet: some View {
+        PaywallView(vm: paywallViewModel).onDisappear { handlePaywallDismiss() }
+    }
+
+    private func handleShowPaywall() {
+        pendingReopenTask?.cancel(); pendingReopenTask = nil
+        shouldReopenAssistant = true; isPresented = false
+        pendingPaywallTask?.cancel()
+        pendingPaywallTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            await paywallViewModel.load()
+            paywallViewModel.trackPaywallShown(source: "habits_assistant", trigger: "feature_limit")
+            showingPaywall = true
+        }
+    }
+
+    private func handleAssistantDismiss() async {
+        await onDataRefreshNeeded()
+        Container.shared.habitsAssistantSheetViewModel().reset()
+        if isFirstVisit { await TapHabitTip.habitsAssistantClosed.donate() }
+    }
+
+    private func handlePaywallDismiss() {
+        paywallViewModel.trackPaywallDismissed()
+        if shouldReopenAssistant {
+            shouldReopenAssistant = false
+            pendingReopenTask?.cancel()
+            pendingReopenTask = Task {
+                try? await Task.sleep(for: .seconds(1.0))
+                guard !Task.isCancelled else { return }
+                isPresented = true
+            }
+        }
     }
 }
 
